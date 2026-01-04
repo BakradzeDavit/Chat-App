@@ -28,7 +28,13 @@ mongoose
 
 app.use(cors());
 app.use(express.json());
-
+// Add this near the top, after app.use(express.json())
+app.get("/", (req, res) => {
+  res.json({
+    status: "Server is running! 🚀",
+    endpoints: ["/login", "/create-user", "/posts", "/upload-profile-pic"],
+  });
+});
 // ✅ Authentication middleware
 const authenticateToken = (req, res, next) => {
   const token = req.headers["authorization"]?.split(" ")[1];
