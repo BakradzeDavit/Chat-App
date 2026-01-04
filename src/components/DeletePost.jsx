@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-
+import { API_URL } from "../config";
 function DeletePost({ post, onDelete }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -18,7 +18,7 @@ function DeletePost({ post, onDelete }) {
     setConfirmDelete(false);
 
     try {
-      const response = await fetch(`http://localhost:3000/posts/${post.id}`, {
+      const response = await fetch(`${API_URL}/posts/${post.id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

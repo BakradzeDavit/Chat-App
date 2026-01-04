@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import DeletePost from "../components/DeletePost";
 import LikePost from "../components/LikePost";
 import { useNavigate } from "react-router-dom";
-
+import { API_URL } from "../config";
 function PostsPage({ user }) {
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState("");
@@ -34,15 +34,12 @@ function PostsPage({ user }) {
         );
       });
 
-      const response = await fetch(
-        `http://localhost:3000/posts/${postId}/like`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_URL}/posts/${postId}/like`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
       if (!response.ok) {
         setPosts((prevPosts) => {
@@ -80,7 +77,7 @@ function PostsPage({ user }) {
       }
 
       try {
-        const response = await fetch("http://localhost:3000/posts", {
+        const response = await fetch(`${API_URL}/posts`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -108,7 +105,7 @@ function PostsPage({ user }) {
   const handleCreate = async () => {
     if (newPost.trim()) {
       try {
-        const response = await fetch("http://localhost:3000/create-post", {
+        const response = await fetch(`${API_URL}/create-post`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

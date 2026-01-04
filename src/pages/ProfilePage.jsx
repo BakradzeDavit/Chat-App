@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-
+import { API_URL } from "../config";
 function ProfilePage({ handleLogout, user, setUser }) {
   const [username, setUsername] = useState(user?.displayName || "");
   const [changeusername, setChangeUsername] = useState(false);
@@ -17,17 +17,14 @@ function ProfilePage({ handleLogout, user, setUser }) {
     } else {
       if (username && username !== user.displayName) {
         try {
-          const response = await fetch(
-            "http://localhost:3000/update-username",
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-              body: JSON.stringify({ username }),
-            }
-          );
+          const response = await fetch(`${API_URL}/update-username`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify({ username }),
+          });
 
           if (response.ok) {
             const updatedUser = await response.json();
@@ -66,7 +63,7 @@ function ProfilePage({ handleLogout, user, setUser }) {
     formData.append("profilePic", file);
 
     try {
-      const response = await fetch("http://localhost:3000/upload-profile-pic", {
+      const response = await fetch(`${API_URL}/upload-profile-pic`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,

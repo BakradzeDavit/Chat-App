@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import { API_URL } from "../config";
 function SignUp({ setLoggedIn, setUser }) {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -24,7 +24,7 @@ function SignUp({ setLoggedIn, setUser }) {
     }
 
     try {
-      const response = await fetch("http://localhost:3000/create-user", {
+      const response = await fetch(`${API_URL}/create-user`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
