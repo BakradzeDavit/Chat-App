@@ -3,16 +3,25 @@ import DeletePost from "../components/DeletePost";
 import LikePost from "../components/LikePost";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../config";
+
 function PostsPage({ user }) {
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState("");
   const navigate = useNavigate();
+
+  // ✅ Add loading state
+  if (!user) {
+    return <div className="loading">Loading...</div>;
+  }
+
   const isMyPost = (post) => {
     return post.author === user.id;
   };
+
   const handleDeletePost = (postId) => {
     setPosts(posts.filter((post) => post.id !== postId));
   };
+
   const handleLike = async (postId) => {
     try {
       setPosts((prevPosts) => {
@@ -27,8 +36,8 @@ function PostsPage({ user }) {
                 ...p,
                 likesCount: wasLiked ? p.likesCount - 1 : p.likesCount + 1,
                 likes: wasLiked
-                  ? p.likes.filter((id) => id !== user.id) // ✅ user.id
-                  : [...(p.likes || []), user.id], // ✅ user.id
+                  ? p.likes.filter((id) => id !== user.id)
+                  : [...(p.likes || []), user.id],
               }
             : p
         );
@@ -42,6 +51,7 @@ function PostsPage({ user }) {
       });
 
       if (!response.ok) {
+        // Revert on error
         setPosts((prevPosts) => {
           const post = prevPosts.find((p) => p.id === postId);
           if (!post) return prevPosts;
@@ -130,13 +140,11 @@ function PostsPage({ user }) {
   return (
     <div className="posts-page">
       <div className="posts-container">
-        {/* Header */}
         <div className="posts-header">
           <h1>Posts</h1>
           <p>Share what's on your mind</p>
         </div>
 
-        {/* Create Post Section */}
         <div className="create-post-card">
           <label>Create a new post</label>
           <textarea
@@ -150,7 +158,6 @@ function PostsPage({ user }) {
           </button>
         </div>
 
-        {/* Posts Feed */}
         <div className="posts-feed">
           {posts.map((post) => (
             <div key={post.id} className="post-card">
@@ -196,7 +203,6 @@ function PostsPage({ user }) {
           ))}
         </div>
 
-        {/* Empty State */}
         {posts.length === 0 && (
           <div className="empty-state">
             <div className="empty-icon">📝</div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../config";
+
 function SignUp({ setLoggedIn, setUser }) {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -14,7 +15,9 @@ function SignUp({ setLoggedIn, setUser }) {
     newStates[index] = !newStates[index];
     setPasswordStates(newStates);
   };
+
   const navigate = useNavigate();
+
   const signUp = async () => {
     setError("");
 
@@ -37,14 +40,23 @@ function SignUp({ setLoggedIn, setUser }) {
       });
 
       const data = await response.json();
-      console.log(data);
+      console.log("SignUp response:", data);
+
+      // ✅ Ensure user.id is stored as a string
+      const userData = {
+        ...data.user,
+        id: String(data.user.id), // Convert to string
+      };
+
+      console.log("User data being stored:", userData); // Debug log
 
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("user", JSON.stringify(userData));
 
       // ✅ Set logged in state to true
       setLoggedIn(true);
-      setUser(data.user);
+      setUser(userData);
+
       // Navigate to home
       navigate("/home");
     } catch (err) {
@@ -55,7 +67,6 @@ function SignUp({ setLoggedIn, setUser }) {
 
   return (
     <div className="RegistrationPage">
-      {" "}
       <div className="signup" id="signup">
         <h2>Sign Up</h2>
 

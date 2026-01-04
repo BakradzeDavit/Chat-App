@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../config";
+
 function Login({ setLoggedIn, setUser }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -11,7 +12,9 @@ function Login({ setLoggedIn, setUser }) {
     newStates[index] = !newStates[index];
     setPasswordStates(newStates);
   };
+
   const navigate = useNavigate();
+
   const login = () => {
     console.log("Logging in with:", { email, password });
     try {
@@ -25,10 +28,20 @@ function Login({ setLoggedIn, setUser }) {
         .then((response) => response.json())
         .then((data) => {
           console.log("Login successful:", data);
-          // ✅ Store twaoken in localStorage
+
+          // ✅ Ensure user.id is stored as a string
+          const userData = {
+            ...data.user,
+            id: String(data.user.id), // Convert to string
+          };
+
+          console.log("User data being stored:", userData); // Debug log
+
+          // ✅ Store token and user in localStorage
           localStorage.setItem("token", data.token);
-          localStorage.setItem("user", JSON.stringify(data.user));
-          setUser(data.user);
+          localStorage.setItem("user", JSON.stringify(userData));
+          setUser(userData);
+
           // ✅ Set logged in state to true
           setLoggedIn(true);
           navigate("/home");
