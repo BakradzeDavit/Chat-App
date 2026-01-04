@@ -192,7 +192,13 @@ app.get("/posts", authenticateToken, async (req, res) => {
       author: post.author.toString(),
       displayName: post.displayName || "Unknown User",
       profileImage: post.profileImage || "letter",
-      likes: (post.likes || []).map((id) => id.toString()),
+      // ✅ Ensure likes are always strings
+      likes: (post.likes || []).map((id) => {
+        if (typeof id === "object" && id._id) {
+          return id._id.toString();
+        }
+        return id.toString();
+      }),
       likesCount: post.likesCount || 0,
       commentsCount: post.commentsCount || 0,
       createdAt: post.createdAt,
@@ -248,11 +254,9 @@ app.post("/posts/:postId/like", authenticateToken, async (req, res) => {
     const isLiked = post.likes.includes(userId);
 
     if (isLiked) {
-      // Unlike
       post.likes = post.likes.filter((id) => id.toString() !== userId);
       post.likesCount = Math.max(0, post.likesCount - 1);
     } else {
-      // Like
       post.likes.push(userId);
       post.likesCount += 1;
     }
@@ -263,6 +267,8 @@ app.post("/posts/:postId/like", authenticateToken, async (req, res) => {
       message: isLiked ? "Post unliked" : "Post liked",
       likesCount: post.likesCount,
       isLiked: !isLiked,
+      // ✅ Send back the likes array as strings
+      likes: post.likes.map((id) => id.toString()),
     });
   } catch (err) {
     console.error("Error liking post:", err);
