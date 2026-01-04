@@ -21,9 +21,19 @@ function App() {
     const token = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
 
-    if (token && storedUser) {
-      setLoggedIn(true);
-      setUser(JSON.parse(storedUser));
+    // ✅ Add null check before parsing
+    if (token && storedUser && storedUser !== "undefined") {
+      try {
+        setLoggedIn(true);
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        // If parsing fails, clear corrupted data
+        console.error("Failed to parse user data:", error);
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setLoggedIn(false);
+        setUser(null);
+      }
     }
   }, []);
 
