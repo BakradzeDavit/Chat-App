@@ -11,23 +11,23 @@ import {
   Routes,
   Route,
   Navigate,
+  useNavigate, // ✅ Add this
 } from "react-router-dom";
 
-function App() {
+function AppContent() {
   const [LoggedIn, setLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
+  const navigate = useNavigate(); // ✅ Add this
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
 
-    // ✅ Add null check before parsing
     if (token && storedUser && storedUser !== "undefined") {
       try {
         setLoggedIn(true);
         setUser(JSON.parse(storedUser));
       } catch (error) {
-        // If parsing fails, clear corrupted data
         console.error("Failed to parse user data:", error);
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -42,71 +42,77 @@ function App() {
     localStorage.removeItem("user");
     setLoggedIn(false);
     setUser(null);
-    window.location.href = "/login"; // Force reload
+    navigate("/login"); // ✅ Use navigate instead
   };
 
   return (
     <div>
-      <Router>
-        {LoggedIn && <Header />}
-        <Routes>
-          <Route
-            path="/"
-            element={
-              LoggedIn ? <Navigate to="/home" /> : <Navigate to="/signup" />
-            }
-          />
-          <Route
-            path="/login"
-            element={
-              LoggedIn ? (
-                <Navigate to="/home" />
-              ) : (
-                <Login setLoggedIn={setLoggedIn} setUser={setUser} />
-              )
-            }
-          />
-          <Route
-            path="/signup"
-            element={
-              LoggedIn ? (
-                <Navigate to="/home" />
-              ) : (
-                <SignUp setLoggedIn={setLoggedIn} setUser={setUser} />
-              )
-            }
-          />
-          <Route
-            path="/home"
-            element={LoggedIn ? <HomePage /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/profile"
-            element={
-              LoggedIn && user ? (
-                <ProfilePage
-                  user={user}
-                  setUser={setUser}
-                  handleLogout={handleLogout}
-                />
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-          <Route
-            path="/posts"
-            element={
-              LoggedIn && user ? (
-                <PostsPage user={user} />
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-        </Routes>
-      </Router>
+      {LoggedIn && <Header />}
+      <Routes>
+        <Route
+          path="/"
+          element={
+            LoggedIn ? <Navigate to="/home" /> : <Navigate to="/signup" />
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            LoggedIn ? (
+              <Navigate to="/home" />
+            ) : (
+              <Login setLoggedIn={setLoggedIn} setUser={setUser} />
+            )
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            LoggedIn ? (
+              <Navigate to="/home" />
+            ) : (
+              <SignUp setLoggedIn={setLoggedIn} setUser={setUser} />
+            )
+          }
+        />
+        <Route
+          path="/home"
+          element={LoggedIn ? <HomePage /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/profile"
+          element={
+            LoggedIn && user ? (
+              <ProfilePage
+                user={user}
+                setUser={setUser}
+                handleLogout={handleLogout}
+              />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/posts"
+          element={
+            LoggedIn && user ? (
+              <PostsPage user={user} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+      </Routes>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 }
 
