@@ -1,9 +1,7 @@
 import React from "react";
 
 function LikePost({ onlike, post, user }) {
-  const isLiked = post.likes?.some(
-    (id) => id.toString() === user.id.toString()
-  );
+  const isLiked = post.likes?.includes(user.id);
   return (
     <div className="Like" onClick={() => onlike(post.id)}>
       <i className={`bi bi-hand-thumbs-up${isLiked ? "-fill" : ""}`}></i>{" "}
