@@ -186,28 +186,59 @@ app.get("/posts", authenticateToken, async (req, res) => {
       .lean(); // Convert to plain objects for better performance
 
     // ✅ Transform to match frontend expectations
-    const transformedPosts = posts.map((post) => ({
-      id: post._id.toString(),
-      text: post.text,
-      author: post.author.toString(),
-      displayName: post.displayName || "Unknown User",
-      profileImage: post.profileImage || "letter",
-      // ✅ Ensure likes are always strings
-      likes: (post.likes || []).map((id) => {
-        if (typeof id === "object" && id._id) {
-          return id._id.toString();
-        }
-        return id.toString();
-      }),
-      likesCount: post.likesCount || 0,
-      commentsCount: post.commentsCount || 0,
-      createdAt: post.createdAt,
-    }));
+    const transformedPosts = posts.map((post) => {
+      try {
+        return {
+          id: post._id.toString(),
+          text: post.text || "",
+          author: post.author ? post.author.toString() : "",
+          displayName: post.displayName || "Unknown User",
+          profileImage: post.profileImage || "letter",
+          // ✅ Safely handle likes array
+          likes: Array.isArray(post.likes)
+            ? post.likes
+                .map((id) => {
+                  try {
+                    if (!id) return null;
+                    if (typeof id === "object" && id._id) {
+                      return id._id.toString();
+                    }
+                    return id.toString();
+                  } catch (e) {
+                    console.error("Error converting like ID:", e);
+                    return null;
+                  }
+                })
+                .filter(Boolean)
+            : [],
+          likesCount: post.likesCount || 0,
+          commentsCount: post.commentsCount || 0,
+          createdAt: post.createdAt || new Date(),
+        };
+      } catch (postError) {
+        console.error("Error transforming post:", postError, post);
+        // Return a minimal valid post object
+        return {
+          id: post._id ? post._id.toString() : "unknown",
+          text: "Error loading post",
+          author: "",
+          displayName: "Unknown User",
+          profileImage: "letter",
+          likes: [],
+          likesCount: 0,
+          commentsCount: 0,
+          createdAt: new Date(),
+        };
+      }
+    });
 
     res.json({ posts: transformedPosts });
   } catch (err) {
     console.error("Error fetching posts:", err);
-    res.status(500).json({ message: "Error fetching posts" });
+    res.status(500).json({
+      message: "Error fetching posts",
+      error: err.message,
+    });
   }
 });
 
@@ -324,5 +355,22 @@ app.post(
     }
   }
 );
-
+app.get("/user/:id", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await userModel
+      .findById(id)
+      .select("displayName email profileImage");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json({ user });
+  } catch (err) {
+    console.error("Error fetching user:", err);
+    res.status(500).json({
+      message: "Error fetching user",
+      error: err.message,
+    });
+  }
+});
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -5,6 +5,7 @@ import SignUp from "./components/SignUp";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import PostsPage from "./pages/PostsPage";
+import UserPage from "./pages/UserPage";
 import Header from "./components/Header";
 import {
   BrowserRouter as Router,
@@ -98,6 +99,16 @@ function AppContent() {
           element={
             LoggedIn && user ? (
               <PostsPage user={user} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/user/:id"
+          element={
+            LoggedIn && user ? (
+              <UserPage user={user} />
             ) : (
               <Navigate to="/login" />
             )

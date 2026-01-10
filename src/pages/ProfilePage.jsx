@@ -116,7 +116,7 @@ function ProfilePage({ handleLogout, user, setUser }) {
 
               {isHovering && !uploading && (
                 <div className="gallery-icon">
-                  <i class="bi bi-camera"></i>
+                  <i className="bi bi-camera"></i>
                 </div>
               )}
 

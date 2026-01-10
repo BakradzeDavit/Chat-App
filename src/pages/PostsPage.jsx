@@ -7,12 +7,10 @@ import { API_URL } from "../config";
 function PostsPage({ user }) {
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   // ✅ Add loading state
-  if (!user) {
-    return <div className="loading">Loading...</div>;
-  }
 
   const isMyPost = (post) => {
     return post.author === user.id;
@@ -77,7 +75,13 @@ function PostsPage({ user }) {
   };
 
   useEffect(() => {
+    if (!user) {
+      return;
+    }
+    let isMounted = true;
+
     const fetchPosts = async () => {
+      setIsLoading(true);
       const token = localStorage.getItem("token");
 
       if (!token) {
@@ -102,7 +106,12 @@ function PostsPage({ user }) {
 
         if (response.ok) {
           const data = await response.json();
-          setPosts(data.posts);
+          if (isMounted && data && Array.isArray(data.posts)) {
+            setPosts(data.posts);
+          }
+          if (isMounted) {
+            setIsLoading(false);
+          }
         }
       } catch (error) {
         console.error("Error fetching posts:", error);
@@ -110,7 +119,7 @@ function PostsPage({ user }) {
     };
 
     fetchPosts();
-  }, [navigate]);
+  }, [navigate, user]);
 
   const handleCreate = async () => {
     if (newPost.trim()) {
