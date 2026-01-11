@@ -6,6 +6,7 @@ import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import PostsPage from "./pages/PostsPage";
 import UserPage from "./pages/UserPage";
+
 import Header from "./components/Header";
 import {
   BrowserRouter as Router,
@@ -105,14 +106,8 @@ function AppContent() {
           }
         />
         <Route
-          path="/user/:id"
-          element={
-            LoggedIn && user ? (
-              <UserPage user={user} />
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
+          path="/users/:id/profile"
+          element={LoggedIn && user ? <UserPage /> : <Navigate to="/login" />}
         />
       </Routes>
     </div>

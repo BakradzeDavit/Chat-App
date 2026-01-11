@@ -355,7 +355,7 @@ app.post(
     }
   }
 );
-app.get("/user/:id", authenticateToken, async (req, res) => {
+app.get("/users/:id/profile", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const user = await userModel
@@ -373,4 +373,5 @@ app.get("/user/:id", authenticateToken, async (req, res) => {
     });
   }
 });
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

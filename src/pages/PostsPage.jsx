@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
+
 import DeletePost from "../components/DeletePost";
 import LikePost from "../components/LikePost";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../config";
-
+import { Link } from "react-router-dom";
 function PostsPage({ user }) {
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState("");
@@ -171,7 +172,10 @@ function PostsPage({ user }) {
           {posts.map((post) => (
             <div key={post.id} className="post-card">
               <div className="post-content-wrapper">
-                <div className="post-avatar">
+                <Link
+                  to={`/users/${post.author}/profile`}
+                  className="post-avatar"
+                >
                   {post.profileImage && post.profileImage !== "letter" ? (
                     <img
                       src={post.profileImage}
@@ -183,12 +187,15 @@ function PostsPage({ user }) {
                       {post.displayName?.charAt(0).toUpperCase() || "U"}
                     </span>
                   )}
-                </div>
+                </Link>
                 <div className="post-text-content">
                   <div className="post-meta">
-                    <span className="post-username">
+                    <Link
+                      to={`/users/${post.author}/profile`}
+                      className="post-username"
+                    >
                       {post.displayName || "Unknown User"}
-                    </span>
+                    </Link>
                     <span className="post-date">
                       ·{" "}
                       {new Date(post.createdAt).toLocaleDateString() ||
