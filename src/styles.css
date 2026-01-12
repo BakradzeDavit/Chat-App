@@ -196,7 +196,6 @@ body,
 }
 
 .logo-link:hover {
-  transform: scale(1.03);
   filter: brightness(0.7);
 }
 
@@ -232,12 +231,10 @@ body,
 .nav-link:hover {
   background-color: var(--hover-bg);
   color: var(--text-primary);
-  transform: translateY(-1px);
 }
 
 .nav-link:active {
   background-color: var(--bg-tertiary);
-  transform: translateY(0);
 }
 
 /* Posts Page */
@@ -391,12 +388,7 @@ body,
 
 .post-card:hover {
   box-shadow: 0 8px 24px var(--shadow);
-  transform: translateX(4px);
   border-color: var(--accent-primary);
-}
-
-.post-card:hover::after {
-  opacity: 1;
 }
 
 .post-content-wrapper {
@@ -489,6 +481,7 @@ body,
   color: var(--text-primary);
   font-size: 16px;
   letter-spacing: -0.2px;
+  text-decoration: none;
 }
 
 .post-date {
@@ -1222,4 +1215,29 @@ body,
     padding: 8px 20px;
     font-size: 14px;
   }
+}
+.Notifications {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%; /* Keep circular */
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.Notifications:hover {
+  background-color: var(--hover-bg);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.Notifications:active {
+  transform: translateY(0);
 }

@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import logo from "../assets/Logo.png";
+import Notifications from "./Notifications";
 function Header() {
   return (
     <header className="header">
@@ -9,6 +10,7 @@ function Header() {
       </Link>
 
       <nav className="nav">
+        <Notifications />
         <Link to="/" className="nav-link">
           Home
         </Link>

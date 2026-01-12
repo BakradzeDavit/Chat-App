@@ -1,29 +1,47 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { API_URL } from "../config";
-function UserPage() {
+function UserPage({ currentUser }) {
   const { id } = useParams();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("posts");
-
+  const [friendStatus, setFriendStatus] = useState("none"); // 'none', 'friends', 'sent', 'received'
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
+        console.log("Fetching user data for ID:", id);
+
         const response = await fetch(`${API_URL}/users/${id}/profile`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
+        console.log("Response status:", response.status);
+        console.log("Response ok:", response.ok);
 
         if (!response.ok) {
-          throw new Error("Failed to fetch user");
+          throw new Error(
+            `Failed to fetch user: ${response.status} ${response.statusText}`
+          );
         }
 
         const data = await response.json();
+        console.log("Fetched data:", data);
         setUserData(data.user);
+
+        // Determine friend status
+        if (data.user.isFriend) {
+          setFriendStatus("friends");
+        } else if (data.user.hasSentRequest) {
+          setFriendStatus("sent");
+        } else if (data.user.hasReceivedRequest) {
+          setFriendStatus("received");
+        } else {
+          setFriendStatus("none");
+        }
       } catch (error) {
         console.error("Error fetching user data:", error);
         setError(error.message);
@@ -33,7 +51,50 @@ function UserPage() {
     };
     fetchUserData();
   }, [id]);
-  console.log("User data fetched:", userData);
+  const handleFriendRequest = async () => {
+    try {
+      console.log(
+        "Sending friend request to:",
+        `${API_URL}/users/${id}/send-friend-request`
+      );
+      const response = await fetch(
+        `${API_URL}/users/${id}/send-friend-request`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log("Response status:", response.status);
+      console.log("Response ok:", response.ok);
+
+      if (response.ok) {
+        alert("Friend request sent successfully!");
+        setFriendStatus("sent");
+      } else {
+        console.log("Response not ok, attempting to parse as JSON...");
+        try {
+          const errorData = await response.json();
+          console.log("Parsed error data:", errorData);
+          alert(`Failed to send friend request: ${errorData.message}`);
+        } catch (parseError) {
+          console.error("Failed to parse response as JSON:", parseError);
+          const responseText = await response.text();
+          console.log("Response text:", responseText);
+          alert(
+            `Failed to send friend request: Server returned non-JSON response (status ${response.status})`
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error sending friend request:", error);
+      alert("An error occurred while sending the friend request.");
+    }
+  };
+  const CheckFriendStatus = async () => {
+    userData;
+  };
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!userData) return <div>User not found</div>;
@@ -67,7 +128,19 @@ function UserPage() {
               <button className="user-action-btn">
                 <i className="bi bi-three-dots"></i>
               </button>
-              <button className="user-follow-btn">Add Friend</button>
+              <button
+                className="user-follow-btn"
+                onClick={friendStatus === "none" ? handleFriendRequest : null}
+                disabled={friendStatus !== "none"}
+              >
+                {friendStatus === "friends"
+                  ? "Friends"
+                  : friendStatus === "sent"
+                    ? "Request Sent"
+                    : friendStatus === "received"
+                      ? "Request Received"
+                      : "Add Friend"}
+              </button>
             </div>
           </div>
 

@@ -72,6 +72,7 @@ app.post("/login", async (req, res) => {
         email: user.email,
         displayName: user.displayName,
         profileImage: user.profileImage,
+        friends: user.friends,
       },
     });
   } catch (err) {
@@ -93,7 +94,7 @@ app.post("/create-user", async (req, res) => {
     const user = await userModel.create({ email, displayName, password });
 
     const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
-      expiresIn: "24h",
+      expiresIn: "48h",
     });
 
     res.status(201).json({
@@ -104,6 +105,8 @@ app.post("/create-user", async (req, res) => {
         email: user.email,
         displayName: user.displayName,
         profileImage: user.profileImage,
+        PostsCount: user.PostsCount,
+        friends: user.friends,
       },
     });
   } catch (err) {
@@ -125,7 +128,15 @@ app.put("/update-username", authenticateToken, async (req, res) => {
       { new: true }
     );
     await PostModel.updateMany({ author: userId }, { displayName: username });
-    res.status(200).json({ message: "Username updated", user: updatedUser });
+    res.status(200).json({
+      message: "Username updated",
+      user: {
+        id: updatedUser._id,
+        email: updatedUser.email,
+        displayName: updatedUser.displayName,
+        profileImage: updatedUser.profileImage,
+      },
+    });
   } catch (err) {
     console.error("Error updating username:", err);
     res
@@ -152,7 +163,9 @@ app.post("/create-post", authenticateToken, async (req, res) => {
       displayName: user.displayName,
       profileImage: user.profileImage || "letter",
     });
-
+    await userModel.findByIdAndUpdate(post.author, {
+      $inc: { PostsCount: 1 },
+    });
     // ✅ Return post with all needed fields
     res.status(201).json({
       message: "Post created successfully",
@@ -261,6 +274,9 @@ app.delete("/posts/:postId", authenticateToken, async (req, res) => {
         .json({ message: "Not authorized to delete this post" });
     }
 
+    await userModel.findByIdAndUpdate(post.author, {
+      $inc: { PostsCount: -1 },
+    });
     await PostModel.findByIdAndDelete(postId);
 
     res.json({ message: "Post deleted successfully" });
@@ -360,15 +376,135 @@ app.get("/users/:id/profile", authenticateToken, async (req, res) => {
     const { id } = req.params;
     const user = await userModel
       .findById(id)
-      .select("displayName email profileImage backgroundImage PostsCount");
+      .select(
+        "displayName email profileImage backgroundImage PostsCount friends"
+      );
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    res.json({ user });
+
+    // Fetch current user to check friend status
+    const currentUser = await userModel.findById(req.user.id);
+    const isFriend = currentUser.friends.some(
+      (friendId) => friendId.toString() === id
+    );
+    const hasSentRequest = currentUser.friendRequestsSent.some(
+      (reqId) => reqId.toString() === id
+    );
+    const hasReceivedRequest = currentUser.friendRequestsReceived.some(
+      (reqId) => reqId.toString() === id
+    );
+
+    res.json({
+      user: {
+        id: user._id,
+        displayName: user.displayName,
+        email: user.email,
+        profileImage: user.profileImage,
+        backgroundImage: user.backgroundImage,
+        PostsCount: user.PostsCount,
+        friends: user.friends,
+        isFriend,
+        hasSentRequest,
+        hasReceivedRequest,
+      },
+    });
   } catch (err) {
     console.error("Error fetching user:", err);
     res.status(500).json({
       message: "Error fetching user",
+      error: err.message,
+    });
+  }
+});
+
+app.post(
+  "/users/:id/send-friend-request",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { id: targetUserId } = req.params;
+      const senderId = req.user.id;
+
+      if (targetUserId === senderId) {
+        return res
+          .status(400)
+          .json({ message: "Cannot send friend request to yourself" });
+      }
+
+      const sender = await userModel.findById(senderId);
+      const target = await userModel.findById(targetUserId);
+
+      if (!target) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if already friends
+      if (sender.friends.includes(targetUserId)) {
+        return res.status(400).json({ message: "Already friends" });
+      }
+
+      // Check if request already sent
+      if (sender.friendRequestsSent.includes(targetUserId)) {
+        return res.status(400).json({ message: "Friend request already sent" });
+      }
+
+      // Check if request already received (though unlikely)
+      if (target.friendRequestsReceived.includes(senderId)) {
+        return res
+          .status(400)
+          .json({ message: "Friend request already exists" });
+      }
+
+      // Add to sent and received
+      sender.friendRequestsSent.push(targetUserId);
+      target.friendRequestsReceived.push(senderId);
+
+      await sender.save();
+      await target.save();
+
+      res.json({ message: "Friend request sent successfully" });
+    } catch (err) {
+      console.error("Error sending friend request:", err);
+      res.status(500).json({
+        message: "Error sending friend request",
+        error: err.message,
+      });
+    }
+  }
+);
+
+app.get(
+  "/users/friendRequestsReceived",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await userModel
+        .findById(userId)
+        .populate("friendRequestsReceived", "displayName email profileImage");
+      res.json({ friendRequests: user.friendRequestsReceived });
+    } catch (err) {
+      console.error("Error fetching friend requests received:", err);
+      res.status(500).json({
+        message: "Error fetching friend requests received",
+        error: err.message,
+      });
+    }
+  }
+);
+
+app.get("/users/friendRequestsSent", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await userModel
+      .findById(userId)
+      .populate("friendRequestsSent", "displayName email profileImage");
+    res.json({ friendRequests: user.friendRequestsSent });
+  } catch (err) {
+    console.error("Error fetching friend requests sent:", err);
+    res.status(500).json({
+      message: "Error fetching friend requests sent",
       error: err.message,
     });
   }

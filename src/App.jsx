@@ -6,6 +6,7 @@ import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import PostsPage from "./pages/PostsPage";
 import UserPage from "./pages/UserPage";
+import { API_URL } from "./config";
 
 import Header from "./components/Header";
 import {
@@ -38,6 +39,29 @@ function AppContent() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (user && !user.friends) {
+      const fetchCurrentUser = async () => {
+        try {
+          const response = await fetch(`${API_URL}/users/${user.id}/profile`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const updatedUser = { ...user, ...data.user };
+            setUser(updatedUser);
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          }
+        } catch (error) {
+          console.error("Error fetching current user:", error);
+        }
+      };
+      fetchCurrentUser();
+    }
+  }, [user]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -107,7 +131,13 @@ function AppContent() {
         />
         <Route
           path="/users/:id/profile"
-          element={LoggedIn && user ? <UserPage /> : <Navigate to="/login" />}
+          element={
+            LoggedIn && user ? (
+              <UserPage currentUser={user} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
         />
       </Routes>
     </div>

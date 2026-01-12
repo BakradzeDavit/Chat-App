@@ -28,6 +28,7 @@ function DeletePost({ post, onDelete }) {
 
       if (response.ok) {
         console.log("Post deleted successfully");
+
         if (onDelete) {
           onDelete(post.id);
         }

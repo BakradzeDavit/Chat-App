@@ -32,6 +32,18 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    Notifications: [
+      {
+        type: {
+          type: String,
+          enum: ["friendRequest", "postLike", "postComment"],
+          required: true,
+        },
+        sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        post: { type: mongoose.Schema.Types.ObjectId, ref: "Post" },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
 
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 

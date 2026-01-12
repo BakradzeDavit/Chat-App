@@ -1,11 +1,45 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { API_URL } from "../config";
 function ProfilePage({ handleLogout, user, setUser }) {
   const [username, setUsername] = useState(user?.displayName || "");
   const [changeusername, setChangeUsername] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [friendRequestsSent, setFriendRequestsSent] = useState([]);
+  const [friendRequestsReceived, setFriendRequestsReceived] = useState([]);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const sentRes = await fetch(`${API_URL}/users/friendRequestsSent`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        if (sentRes.ok) {
+          const sentData = await sentRes.json();
+          setFriendRequestsSent(sentData.friendRequests);
+        }
+
+        const receivedRes = await fetch(
+          `${API_URL}/users/friendRequestsReceived`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        if (receivedRes.ok) {
+          const receivedData = await receivedRes.json();
+          setFriendRequestsReceived(receivedData.friendRequests);
+        }
+      } catch (error) {
+        console.error("Error fetching friend requests:", error);
+      }
+    };
+    fetchRequests();
+  }, []);
 
   if (!user) {
     return <div>Loading...</div>;
