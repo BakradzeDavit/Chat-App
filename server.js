@@ -360,7 +360,7 @@ app.get("/users/:id/profile", authenticateToken, async (req, res) => {
     const { id } = req.params;
     const user = await userModel
       .findById(id)
-      .select("displayName email profileImage");
+      .select("displayName email profileImage backgroundImage PostsCount");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }

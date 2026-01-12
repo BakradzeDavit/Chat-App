@@ -78,7 +78,7 @@ function UserPage() {
             {/* Stats */}
             <div className="user-stats-row">
               <div className="user-stat-item">
-                <span className="stat-value">0</span>
+                <span className="stat-value">{userData.PostsCount}</span>
                 <span className="stat-label">Posts</span>
               </div>
               <div className="user-stat-item">
