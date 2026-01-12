@@ -73,17 +73,24 @@ function UserPage({ currentUser }) {
         alert("Friend request sent successfully!");
         setFriendStatus("sent");
       } else {
-        console.log("Response not ok, attempting to parse as JSON...");
+        console.log("Response not ok, attempting to read response body...");
         try {
-          const errorData = await response.json();
-          console.log("Parsed error data:", errorData);
-          alert(`Failed to send friend request: ${errorData.message}`);
-        } catch (parseError) {
-          console.error("Failed to parse response as JSON:", parseError);
           const responseText = await response.text();
           console.log("Response text:", responseText);
+          try {
+            const errorData = JSON.parse(responseText);
+            console.log("Parsed error data:", errorData);
+            alert(`Failed to send friend request: ${errorData.message}`);
+          } catch (jsonParseError) {
+            console.error("Failed to parse response as JSON:", jsonParseError);
+            alert(
+              `Failed to send friend request: Server returned non-JSON response (status ${response.status}): ${responseText}`
+            );
+          }
+        } catch (textError) {
+          console.error("Failed to read response as text:", textError);
           alert(
-            `Failed to send friend request: Server returned non-JSON response (status ${response.status})`
+            `Failed to send friend request: Unable to read server response (status ${response.status})`
           );
         }
       }
