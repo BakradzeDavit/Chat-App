@@ -374,6 +374,9 @@ app.post(
 app.get("/users/:id/profile", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
     const user = await userModel
       .findById(id)
       .select(
@@ -425,6 +428,10 @@ app.post(
     try {
       const { id: targetUserId } = req.params;
       const senderId = req.user.id;
+
+      if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
 
       if (targetUserId === senderId) {
         return res
