@@ -1400,3 +1400,13 @@ body,
   background-color: #c24d56;
   transform: translateY(-1px);
 }
+.notification-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
