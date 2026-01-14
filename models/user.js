@@ -15,6 +15,10 @@ const userSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    senderSnapshot: {
+      displayName: String,
+      profileImage: String,
+    },
     password: {
       type: String,
       required: true,
@@ -36,12 +40,19 @@ const userSchema = new mongoose.Schema(
       {
         type: {
           type: String,
-          enum: ["friendRequest", "postLike", "postComment"],
+          enum: [
+            "friendRequest",
+            "postLike",
+            "postComment",
+            "Message",
+            "follow",
+          ],
           required: true,
         },
         sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
         post: { type: mongoose.Schema.Types.ObjectId, ref: "Post" },
         createdAt: { type: Date, default: Date.now },
+        Read: { type: Boolean, default: false },
       },
     ],
 

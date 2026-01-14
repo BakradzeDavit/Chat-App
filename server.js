@@ -60,6 +60,8 @@ app.post("/login", async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ message: "Invalid email or password" });
 
+    await user.populate("Notifications.sender", "displayName profileImage");
+
     const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
       expiresIn: "24h",
     });
@@ -107,6 +109,7 @@ app.post("/create-user", async (req, res) => {
         profileImage: user.profileImage,
         PostsCount: user.PostsCount,
         friends: user.friends,
+        Notifications: user.Notifications,
       },
     });
   } catch (err) {
@@ -291,14 +294,17 @@ app.post("/posts/:postId/like", authenticateToken, async (req, res) => {
   try {
     const { postId } = req.params;
     const userId = req.user.id;
+    console.log("Liking post:", postId, "by user:", userId);
 
     const post = await PostModel.findById(postId);
+    console.log("Post found:", !!post);
 
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
 
     const isLiked = post.likes.includes(userId);
+    console.log("Is liked:", isLiked);
 
     if (isLiked) {
       post.likes = post.likes.filter((id) => id.toString() !== userId);
@@ -306,9 +312,41 @@ app.post("/posts/:postId/like", authenticateToken, async (req, res) => {
     } else {
       post.likes.push(userId);
       post.likesCount += 1;
+      console.log("Attempting to add notification to author:", post.author);
+      try {
+        const author = await userModel.findById(post.author);
+        console.log("Author found:", !!author);
+        if (author) {
+          const alreadyExists = author.Notifications.some(
+            (n) =>
+              n.type === "postLike" &&
+              n.sender.toString() === userId.toString() &&
+              n.post.toString() === post._id.toString()
+          );
+
+          if (!alreadyExists) {
+            author.Notifications.push({
+              type: "postLike",
+              senderId: userId,
+              Sender: req.user,
+              post: post._id,
+            });
+
+            await author.save();
+          }
+
+          await author.save();
+          console.log("Notification added successfully");
+        } else {
+          console.log("Author not found for notification");
+        }
+      } catch (notifErr) {
+        console.error("Error adding notification:", notifErr);
+      }
     }
 
     await post.save();
+    console.log("Post saved successfully");
 
     res.json({
       message: isLiked ? "Post unliked" : "Post liked",
@@ -380,8 +418,9 @@ app.get("/users/:id/profile", authenticateToken, async (req, res) => {
     const user = await userModel
       .findById(id)
       .select(
-        "displayName email profileImage backgroundImage PostsCount friends"
-      );
+        "displayName email profileImage backgroundImage PostsCount friends Notifications"
+      )
+      .populate("Notifications.sender", "displayName profileImage");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -410,6 +449,7 @@ app.get("/users/:id/profile", authenticateToken, async (req, res) => {
         isFriend,
         hasSentRequest,
         hasReceivedRequest,
+        Notifications: user.Notifications,
       },
     });
   } catch (err) {
@@ -438,7 +478,7 @@ app.post(
           .status(400)
           .json({ message: "Cannot send friend request to yourself" });
       }
-
+      targetUserId.no;
       const sender = await userModel.findById(senderId);
       const target = await userModel.findById(targetUserId);
 
@@ -467,6 +507,21 @@ app.post(
       sender.friendRequestsSent.push(targetUserId);
       target.friendRequestsReceived.push(senderId);
 
+      // Check if notification already exists
+      const notificationExists = target.Notifications.some(
+        (n) =>
+          n.type === "friendRequest" &&
+          n.sender.toString() === sender._id.toString()
+      );
+
+      if (!notificationExists) {
+        target.Notifications.push({
+          type: "friendRequest",
+          sender: sender._id,
+          sender: sender,
+        });
+      }
+
       await sender.save();
       await target.save();
 
@@ -475,6 +530,117 @@ app.post(
       console.error("Error sending friend request:", err);
       res.status(500).json({
         message: "Error sending friend request",
+        error: err.message,
+      });
+    }
+  }
+);
+
+app.post(
+  "/users/:id/accept-friend-request",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { id: senderId } = req.params;
+      const receiverId = req.user.id;
+
+      if (!mongoose.Types.ObjectId.isValid(senderId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const receiver = await userModel.findById(receiverId);
+      const sender = await userModel.findById(senderId);
+
+      if (!sender) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if request exists
+      if (!receiver.friendRequestsReceived.includes(senderId)) {
+        return res
+          .status(400)
+          .json({ message: "No friend request from this user" });
+      }
+
+      // Add to friends
+      receiver.friends.push(senderId);
+      sender.friends.push(receiverId);
+
+      // Remove from requests
+      receiver.friendRequestsReceived = receiver.friendRequestsReceived.filter(
+        (id) => id.toString() !== senderId
+      );
+      sender.friendRequestsSent = sender.friendRequestsSent.filter(
+        (id) => id.toString() !== receiverId
+      );
+
+      // Remove notification
+      receiver.Notifications = receiver.Notifications.filter(
+        (n) =>
+          !(
+            n.type === "friendRequest" &&
+            n.sender.toString() === sender._id.toString()
+          )
+      );
+
+      await receiver.save();
+      await sender.save();
+
+      res.json({ message: "Friend request accepted successfully" });
+    } catch (err) {
+      console.error("Error accepting friend request:", err);
+      res.status(500).json({
+        message: "Error accepting friend request",
+        error: err.message,
+      });
+    }
+  }
+);
+
+app.post(
+  "/users/:id/cancel-friend-request",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { id: targetUserId } = req.params;
+      const senderId = req.user.id;
+
+      if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const sender = await userModel.findById(senderId);
+      const target = await userModel.findById(targetUserId);
+
+      if (!target) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Remove from sent and received
+      sender.friendRequestsSent = sender.friendRequestsSent.filter(
+        (id) => id.toString() !== targetUserId
+      );
+      target.friendRequestsReceived = target.friendRequestsReceived.filter(
+        (id) => id.toString() !== senderId
+      );
+
+      // Remove notification from target
+      target.Notifications = target.Notifications.filter(
+        (n) =>
+          !(
+            n.type === "friendRequest" &&
+            n.sender.toString() === sender._id.toString()
+          )
+      );
+
+      await sender.save();
+      await target.save();
+
+      res.json({ message: "Friend request canceled successfully" });
+    } catch (err) {
+      console.error("Error canceling friend request:", err);
+      res.status(500).json({
+        message: "Error canceling friend request",
         error: err.message,
       });
     }
@@ -514,6 +680,52 @@ app.get("/users/friendRequestsSent", authenticateToken, async (req, res) => {
       message: "Error fetching friend requests sent",
       error: err.message,
     });
+  }
+});
+
+app.post("/users/:id/remove-friend", authenticateToken, async (req, res) => {
+  try {
+    const { id: friendId } = req.params;
+    const userId = req.user.id;
+
+    if (!mongoose.Types.ObjectId.isValid(friendId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const user = await userModel.findById(userId);
+    const friend = await userModel.findById(friendId);
+
+    if (!friend) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Remove from both friends arrays
+    user.friends = user.friends.filter((id) => id.toString() !== friendId);
+    friend.friends = friend.friends.filter((id) => id.toString() !== userId);
+
+    await user.save();
+    await friend.save();
+
+    res.json({ message: "Friend removed successfully" });
+  } catch (err) {
+    console.error("Error removing friend:", err);
+    res.status(500).json({
+      message: "Error removing friend",
+      error: err.message,
+    });
+  }
+});
+
+app.get("/users", authenticateToken, async (req, res) => {
+  try {
+    const users = await userModel.find(
+      { _id: { $ne: req.user.id } },
+      "displayName profileImage _id" // only safe fields
+    );
+
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
   }
 });
 

@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import logo from "../assets/Logo.png";
 import Notifications from "./Notifications";
-function Header() {
+function Header({ user }) {
   return (
     <header className="header">
       <Link to="/" className="logo-link">
@@ -10,7 +10,7 @@ function Header() {
       </Link>
 
       <nav className="nav">
-        <Notifications />
+        <Notifications user={user} />
         <Link to="/" className="nav-link">
           Home
         </Link>

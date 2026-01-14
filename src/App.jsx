@@ -6,6 +6,7 @@ import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import PostsPage from "./pages/PostsPage";
 import UserPage from "./pages/UserPage";
+import FriendsPage from "./pages/FriendsPage";
 import { API_URL } from "./config";
 
 import Header from "./components/Header";
@@ -41,7 +42,7 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (user && !user.friends) {
+    if (user && !user.Notifications) {
       const fetchCurrentUser = async () => {
         try {
           const response = await fetch(`${API_URL}/users/${user.id}/profile`, {
@@ -73,7 +74,7 @@ function AppContent() {
 
   return (
     <div>
-      {LoggedIn && <Header />}
+      {LoggedIn && <Header user={user} />}
       <Routes>
         <Route
           path="/"
@@ -134,6 +135,17 @@ function AppContent() {
           element={
             LoggedIn && user ? (
               <UserPage currentUser={user} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        4
+        <Route
+          path="/friends"
+          element={
+            LoggedIn && user ? (
+              <FriendsPage user={user} />
             ) : (
               <Navigate to="/login" />
             )

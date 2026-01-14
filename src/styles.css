@@ -349,7 +349,7 @@ body,
 
 .add-post-btn:hover {
   background-color: var(--accent-secondary);
-  transform: translateY(-2px);
+
   box-shadow: 0 8px 20px rgba(139, 125, 125, 0.4);
 }
 
@@ -1240,4 +1240,163 @@ body,
 
 .Notifications:active {
   transform: translateY(0);
+}
+
+.open {
+  display: block;
+}
+.notifications-dropdown {
+  position: absolute;
+  top: 75px;
+  right: 22.5%;
+  width: 300px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  z-index: 1000;
+
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+
+  transition:
+    opacity 0.1s ease,
+    transform 0.1s ease;
+}
+.notifications-dropdown.open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.notification-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-color);
+
+  font-size: 14px;
+  color: var(--text-secondary);
+
+  background-color: var(--bg-secondary);
+  transition: background-color 0.2s ease;
+}
+
+.notification-item:hover {
+  background-color: var(--bg-hover);
+}
+
+.notification-text {
+  flex: 1;
+  margin-right: 10px;
+  line-height: 1.4;
+}
+
+.notification-icon {
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+/* Friends Page */
+.friends-page {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  padding: 60px 24px 40px;
+}
+
+.friends-page h1 {
+  font-size: 42px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.friends-list {
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.friend-item {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px var(--shadow);
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 350px;
+  width: 100%;
+}
+
+.friend-item:hover {
+  box-shadow: 0 4px 16px var(--shadow);
+  border-color: var(--accent-primary);
+}
+
+.friend-image {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.friend-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.friend-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.friend-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.friend-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.message-btn {
+  background-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.message-btn:hover {
+  background-color: var(--accent-secondary);
+  transform: translateY(-1px);
+}
+
+.remove-btn {
+  background-color: var(--error-color);
+  color: white;
+}
+
+.remove-btn:hover {
+  background-color: #c24d56;
+  transform: translateY(-1px);
 }

@@ -12,15 +12,12 @@ function UserPage({ currentUser }) {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        console.log("Fetching user data for ID:", id);
 
         const response = await fetch(`${API_URL}/users/${id}/profile`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-        console.log("Response status:", response.status);
-        console.log("Response ok:", response.ok);
 
         if (!response.ok) {
           throw new Error(
@@ -29,7 +26,6 @@ function UserPage({ currentUser }) {
         }
 
         const data = await response.json();
-        console.log("Fetched data:", data);
         setUserData(data.user);
 
         // Determine friend status
@@ -53,10 +49,6 @@ function UserPage({ currentUser }) {
   }, [id]);
   const handleFriendRequest = async () => {
     try {
-      console.log(
-        "Sending friend request to:",
-        `${API_URL}/users/${id}/send-friend-request`
-      );
       const response = await fetch(
         `${API_URL}/users/${id}/send-friend-request`,
         {
@@ -66,29 +58,22 @@ function UserPage({ currentUser }) {
           },
         }
       );
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
 
       if (response.ok) {
         alert("Friend request sent successfully!");
         setFriendStatus("sent");
       } else {
-        console.log("Response not ok, attempting to read response body...");
         try {
           const responseText = await response.text();
-          console.log("Response text:", responseText);
           try {
             const errorData = JSON.parse(responseText);
-            console.log("Parsed error data:", errorData);
             alert(`Failed to send friend request: ${errorData.message}`);
           } catch (jsonParseError) {
-            console.error("Failed to parse response as JSON:", jsonParseError);
             alert(
               `Failed to send friend request: Server returned non-JSON response (status ${response.status}): ${responseText}`
             );
           }
         } catch (textError) {
-          console.error("Failed to read response as text:", textError);
           alert(
             `Failed to send friend request: Unable to read server response (status ${response.status})`
           );
@@ -99,9 +84,82 @@ function UserPage({ currentUser }) {
       alert("An error occurred while sending the friend request.");
     }
   };
-  const CheckFriendStatus = async () => {
-    userData;
+  const handleAcceptRequest = async () => {
+    try {
+      const response = await fetch(
+        `${API_URL}/users/${id}/accept-friend-request`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        alert("Friend request accepted!");
+        setFriendStatus("friends");
+      } else {
+        try {
+          const responseText = await response.text();
+          try {
+            const errorData = JSON.parse(responseText);
+            alert(`Failed to accept friend request: ${errorData.message}`);
+          } catch (jsonParseError) {
+            alert(
+              `Failed to accept friend request: Server returned non-JSON response (status ${response.status}): ${responseText}`
+            );
+          }
+        } catch (textError) {
+          alert(
+            `Failed to accept friend request: Unable to read server response (status ${response.status})`
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error accepting friend request:", error);
+      alert("An error occurred while accepting the friend request.");
+    }
   };
+
+  const handleDeclineRequest = async () => {
+    try {
+      const response = await fetch(
+        `${API_URL}/users/${id}/cancel-friend-request`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        alert("Friend request canceled!");
+        setFriendStatus("none");
+      } else {
+        try {
+          const responseText = await response.text();
+          try {
+            const errorData = JSON.parse(responseText);
+            alert(`Failed to cancel friend request: ${errorData.message}`);
+          } catch (jsonParseError) {
+            alert(
+              `Failed to cancel friend request: Server returned non-JSON response (status ${response.status}): ${responseText}`
+            );
+          }
+        } catch (textError) {
+          alert(
+            `Failed to cancel friend request: Unable to read server response (status ${response.status})`
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error canceling friend request:", error);
+      alert("An error occurred while canceling the friend request.");
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!userData) return <div>User not found</div>;
@@ -137,15 +195,23 @@ function UserPage({ currentUser }) {
               </button>
               <button
                 className="user-follow-btn"
-                onClick={friendStatus === "none" ? handleFriendRequest : null}
-                disabled={friendStatus !== "none"}
+                onClick={() => {
+                  if (friendStatus === "none") {
+                    handleFriendRequest();
+                  } else if (friendStatus === "sent") {
+                    handleDeclineRequest();
+                  } else if (friendStatus === "received") {
+                    handleAcceptRequest();
+                  }
+                }}
+                disabled={friendStatus === "friends"}
               >
                 {friendStatus === "friends"
                   ? "Friends"
                   : friendStatus === "sent"
-                    ? "Request Sent"
+                    ? "Cancel Request"
                     : friendStatus === "received"
-                      ? "Request Received"
+                      ? "Accept Request"
                       : "Add Friend"}
               </button>
             </div>
