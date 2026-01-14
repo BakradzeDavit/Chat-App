@@ -5,6 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron-forge start",
+    "server": "node server.js",
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "electron": "electron .",
     "vite": "vite"
