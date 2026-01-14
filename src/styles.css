@@ -51,6 +51,7 @@ body,
   box-shadow: 0 8px 24px var(--shadow);
   text-align: center;
   width: 420px;
+  max-width: 90vw;
   border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
@@ -1409,4 +1410,199 @@ body,
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
   flex-shrink: 0;
+}
+
+/* Mobile Responsive Adjustments */
+
+@media (max-width: 768px) {
+  /* Header */
+  .header {
+    height: 80px;
+    padding: 0 16px;
+  }
+  .logo-link {
+    width: 120px;
+  }
+  .logo {
+    height: 120px;
+  }
+  .nav-link {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+
+  /* Posts Page */
+  .posts-page {
+    padding: 40px 16px 20px;
+  }
+  .posts-header h1 {
+    font-size: 32px;
+  }
+  .posts-header p {
+    font-size: 16px;
+  }
+  .create-post-card {
+    padding: 24px;
+  }
+  .create-post-card textarea {
+    font-size: 16px;
+    padding: 14px 18px;
+    min-height: 100px;
+  }
+  .post-card {
+    padding: 20px;
+  }
+  .post-avatar {
+    width: 48px;
+    height: 48px;
+  }
+  .post-avatar > span {
+    font-size: 20px;
+  }
+  .post-username {
+    font-size: 15px;
+  }
+  .post-text {
+    font-size: 16px;
+  }
+  .interactions {
+    gap: 16px;
+  }
+  .Like,
+  .Comment {
+    font-size: 13px;
+    padding: 4px 10px;
+  }
+  .empty-state {
+    padding: 60px 20px;
+  }
+  .empty-icon {
+    font-size: 60px;
+    margin-bottom: 16px;
+  }
+  .empty-state p {
+    font-size: 16px;
+  }
+
+  /* Profile Page */
+  .profile-page {
+    padding: 32px 16px;
+  }
+  .avatar-section {
+    padding: 32px;
+  }
+  .profile-avatar-wrapper {
+    width: 100px;
+    height: 100px;
+  }
+  .profile-avatar-wrapper .profile-avatar-placeholder {
+    font-size: 48px;
+  }
+  .user-info h2 {
+    font-size: 24px;
+  }
+  .profile-section {
+    padding: 24px;
+  }
+
+  /* Friends Page */
+  .friends-page {
+    padding: 40px 16px 20px;
+  }
+  .friends-page h1 {
+    font-size: 32px;
+  }
+  .friend-item {
+    padding: 16px;
+    max-width: 100%;
+  }
+  .friend-image {
+    width: 48px;
+    height: 48px;
+  }
+  .friend-name {
+    font-size: 16px;
+  }
+
+  /* Notifications */
+  .notifications-dropdown {
+    width: 280px;
+    right: 10px;
+    top: 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login,
+  .signup {
+    padding: 24px 20px;
+  }
+  .login h2,
+  .signup h2 {
+    font-size: 24px;
+  }
+  .input {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+  .loginBtn,
+  .signupBtn {
+    font-size: 14px;
+    padding: 10px;
+  }
+  .header {
+    height: 70px;
+  }
+  .nav {
+    gap: 8px;
+  }
+  .nav-link {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+  .posts-header h1 {
+    font-size: 28px;
+  }
+  .create-post-card textarea {
+    font-size: 15px;
+  }
+  .add-post-btn {
+    font-size: 14px;
+    padding: 12px 24px;
+  }
+  .post-card {
+    padding: 16px;
+  }
+  .avatar-section {
+    padding: 24px;
+  }
+  .profile-avatar-wrapper {
+    width: 80px;
+    height: 80px;
+  }
+  .profile-avatar-wrapper .profile-avatar-placeholder {
+    font-size: 36px;
+  }
+  .user-info h2 {
+    font-size: 20px;
+  }
+  .user-info p {
+    font-size: 14px;
+  }
+  .friends-page h1 {
+    font-size: 28px;
+  }
+  .friend-item {
+    padding: 12px;
+  }
+  .friend-name {
+    font-size: 14px;
+  }
+  .friend-btn {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+  .notifications-dropdown {
+    width: 250px;
+  }
 }
