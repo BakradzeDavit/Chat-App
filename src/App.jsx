@@ -42,7 +42,7 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (user && !user.Notifications) {
+    if (user) {
       const fetchCurrentUser = async () => {
         try {
           const response = await fetch(`${API_URL}/users/${user.id}/profile`, {
@@ -62,7 +62,7 @@ function AppContent() {
       };
       fetchCurrentUser();
     }
-  }, [user]);
+  }, [user?.id]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");

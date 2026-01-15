@@ -1,14 +1,40 @@
 import React, { useEffect } from "react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 function Notifications({ user }) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
-
+  const navigate = useNavigate();
   useEffect(() => {
     if (user && user.Notifications) {
       setNotifications(user.Notifications);
     }
   }, [user]);
+  const handleNotificationClick = (notification) => {
+    navigate(`/users/${notification.sender._id}/profile`);
+    try {
+      fetch(`${API_URL}/notifications/${notification._id}/read`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        catch(error) {
+          console.error("Error marking notification as read:", error);
+        },
+      }).then((response) => {
+        if (response.ok) {
+          setNotifications((prevNotifications) =>
+            prevNotifications.filter((n) => n._id !== notification._id)
+          );
+        } else {
+          console.error("Failed to mark notification as read");
+        }
+      });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
   return (
     <div>
       <i
@@ -19,7 +45,13 @@ function Notifications({ user }) {
       ></i>
       <div className={`notifications-dropdown ${isOpen ? "open" : ""}`}>
         {notifications.map((notification, index) => (
-          <div key={index} className="notification-item">
+          <div
+            onClick={() =>
+              navigate(`/users/${notification.sender._id}/profile`)
+            }
+            key={index}
+            className="notification-item"
+          >
             {notification.sender && (
               <img
                 src={

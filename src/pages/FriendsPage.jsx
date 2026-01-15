@@ -18,6 +18,12 @@ function FriendsPage({ user }) {
 
       if (response.ok) {
         setFriends(friends.filter((friend) => friend._id !== friendId));
+        // Update localStorage
+        const currentUser = JSON.parse(localStorage.getItem("user"));
+        currentUser.friends = currentUser.friends.filter(
+          (id) => id !== friendId
+        );
+        localStorage.setItem("user", JSON.stringify(currentUser));
       } else {
         alert("Failed to remove friend");
       }

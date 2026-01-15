@@ -4,6 +4,7 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const userModel = require("./models/user");
 const PostModel = require("./models/Post");
+const CommentModel = require("./models/Comment");
 const multer = require("multer");
 const cloudinary = require("./config/cloudinary");
 const user = require("./models/user");
@@ -197,6 +198,10 @@ app.post("/create-post", authenticateToken, async (req, res) => {
 app.get("/posts", authenticateToken, async (req, res) => {
   try {
     const posts = await PostModel.find()
+      .populate({
+         path: "comments",
+         populate: { path: "author", select: "displayName profileImage" }
+      })
       .sort({ createdAt: -1 })
       .limit(50)
       .lean(); // Convert to plain objects for better performance
@@ -228,7 +233,9 @@ app.get("/posts", authenticateToken, async (req, res) => {
                 .filter(Boolean)
             : [],
           likesCount: post.likesCount || 0,
-          commentsCount: post.commentsCount || 0,
+
+          commentsCount: post.comments ? post.comments.length : 0,
+          comments: post.comments || [],
           createdAt: post.createdAt || new Date(),
         };
       } catch (postError) {
@@ -303,14 +310,14 @@ app.post("/posts/:postId/like", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    const isLiked = post.likes.includes(userId);
+    const isLiked = post.likes.some((id) => id.toString() === userId);
     console.log("Is liked:", isLiked);
 
     if (isLiked) {
       post.likes = post.likes.filter((id) => id.toString() !== userId);
       post.likesCount = Math.max(0, post.likesCount - 1);
     } else {
-      post.likes.push(userId);
+      post.likes.push(new mongoose.Types.ObjectId(userId));
       post.likesCount += 1;
       console.log("Attempting to add notification to author:", post.author);
       try {
@@ -320,25 +327,30 @@ app.post("/posts/:postId/like", authenticateToken, async (req, res) => {
           const alreadyExists = author.Notifications.some(
             (n) =>
               n.type === "postLike" &&
+              n.sender &&
               n.sender.toString() === userId.toString() &&
+              n.post &&
               n.post.toString() === post._id.toString()
           );
 
           if (!alreadyExists) {
+            console.log("Pushing new notification with sender:", userId);
             author.Notifications.push({
               type: "postLike",
-              senderId: userId,
-              Sender: req.user,
+              sender:
+                typeof userId === "string"
+                  ? new mongoose.Types.ObjectId(userId)
+                  : userId,
               post: post._id,
             });
 
             await author.save();
+            console.log("Notification saved to author");
+          } else {
+            console.log("Notification already exists");
           }
-
-          await author.save();
-          console.log("Notification added successfully");
         } else {
-          console.log("Author not found for notification");
+          console.log("Author not found");
         }
       } catch (notifErr) {
         console.error("Error adding notification:", notifErr);
@@ -727,6 +739,61 @@ app.get("/users", authenticateToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
+});
+
+// ✅ Delete notification endpoint
+app.delete("/notifications/:id", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const notificationId = req.params.id;
+
+    const user = await userModel.findById(userId);
+    user.Notifications = user.Notifications.filter(
+      (n) => n._id.toString() !== notificationId
+    );
+    await user.save();
+
+    res.json({ message: "Notification deleted" });
+  } catch (err) {
+    console.error("Error deleting notification:", err);
+    res
+      .status(500)
+      .json({ message: "Error deleting notification", error: err.message });
+  }
+});
+app.post("/comments", authenticateToken, async (req, res) => {
+    try {
+        const { postId, text } = req.body;
+        const userId = req.user.id;
+
+        if (!mongoose.Types.ObjectId.isValid(postId)) {
+            return res.status(400).json({ message: "Invalid post ID" });
+        }
+
+        const post = await PostModel.findById(postId);
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        const comment = await CommentModel.create({
+            text,
+            author: userId,
+            post: postId,
+        });
+
+        const populatedComment = await CommentModel.findById(comment._id).populate("author", "displayName profileImage");
+
+        post.comments.push(comment._id);
+        await post.save();
+
+        res.json({ message: "Comment added successfully", comment: populatedComment });
+    } catch (err) {
+        console.error("Error adding comment:", err);
+        res.status(500).json({
+            message: "Error adding comment",
+            error: err.message,
+        });
+    }
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
