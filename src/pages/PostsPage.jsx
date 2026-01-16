@@ -147,6 +147,42 @@ function PostsPage({ user }) {
     fetchPosts();
   }, [navigate, user?.id]); // ✅ Fix: Depend only on user.id to prevent infinite loops
 
+  // Socket listener for real-time post likes
+  useEffect(() => {
+    if (!user || !user.id) return;
+
+    const socketInstance = window.socketRef?.current;
+    if (!socketInstance) return;
+
+    // Join user's socket room
+    socketInstance.emit("userOnline", user.id);
+
+    // Listen for post liked event
+    const handlePostLiked = (data) => {
+      const { postId, likerId, likesCount, likes } = data;
+      console.log("Post liked via socket:", data);
+      
+      setPosts((prevPosts) =>
+        prevPosts.map((p) =>
+          p.id === postId
+            ? {
+                ...p,
+                likesCount: likesCount,
+                likes: likes || [],
+              }
+            : p
+        )
+      );
+    };
+
+    socketInstance.on("postLiked", handlePostLiked);
+
+    return () => {
+      socketInstance.off("postLiked", handlePostLiked);
+    };
+  }, [user]);
+
+
   const handleCreate = async () => {
     if (newPost.trim()) {
       try {

@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Login from "./components/Login";
 import SignUp from "./components/SignUp";
 import HomePage from "./pages/HomePage";
@@ -8,21 +8,54 @@ import PostsPage from "./pages/PostsPage";
 import UserPage from "./pages/UserPage";
 import FriendsPage from "./pages/FriendsPage";
 import { API_URL } from "./config";
-
+import { io } from "socket.io-client";
 import Header from "./components/Header";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
-  useNavigate, // ✅ Add this
+  useNavigate,
 } from "react-router-dom";
 
 function AppContent() {
   const [LoggedIn, setLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
-  const navigate = useNavigate(); // ✅ Add this
+  const navigate = useNavigate();
 
+  // ✅ FIX 1: Use useRef to create socket only once
+  const socketRef = useRef(null);
+
+  // Initialize socket connection once
+  useEffect(() => {
+    if (!socketRef.current) {
+      socketRef.current = io(API_URL, {
+        withCredentials: true,
+        transports: ["websocket", "polling"],
+      });
+
+      // Make socket globally accessible
+      window.socketRef = socketRef;
+
+      socketRef.current.on("connect", () => {
+        console.log("Socket connected:", socketRef.current.id);
+      });
+
+      socketRef.current.on("disconnect", () => {
+        console.log("Socket disconnected");
+      });
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
+  }, []);
+
+  // Check for existing login
   useEffect(() => {
     const token = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
@@ -41,35 +74,106 @@ function AppContent() {
     }
   }, []);
 
+  // ✅ FIX 2: Fetch user profile only once after initial login
   useEffect(() => {
-    if (user) {
-      const fetchCurrentUser = async () => {
-        try {
-          const response = await fetch(`${API_URL}/users/${user.id}/profile`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          });
-          if (response.ok) {
-            const data = await response.json();
-            const updatedUser = { ...user, ...data.user };
-            setUser(updatedUser);
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-          }
-        } catch (error) {
-          console.error("Error fetching current user:", error);
+    if (!user?.id) return;
+
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch(`${API_URL}/users/${user.id}/profile`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const updatedUser = { ...user, ...data.user };
+          setUser(updatedUser);
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+        } else if (response.status === 404) {
+          console.error("Profile endpoint not found");
         }
-      };
-      fetchCurrentUser();
-    }
-  }, [user?.id]);
+      } catch (error) {
+        console.error("Error fetching current user:", error);
+      }
+    };
+
+    fetchCurrentUser();
+    // ✅ Only run when user.id changes (on login), not when user object changes
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ✅ Global socket listeners that persist across pages
+  useEffect(() => {
+    if (!socketRef.current || !user?.id) return;
+
+    const socket = socketRef.current;
+
+    // Join user's socket room
+    socket.emit("userOnline", user.id);
+    console.log("App: User joined socket room:", user.id);
+
+    // Listen for friend removed event
+    const handleFriendRemoved = (data) => {
+      const { friendId } = data;
+      console.log("App: Friend removed via socket:", friendId);
+      
+      // Update user state immediately
+      setUser((prevUser) => {
+        if (!prevUser) return prevUser;
+        const updatedUser = {
+          ...prevUser,
+          friends: prevUser.friends.filter((id) => id !== friendId),
+        };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        return updatedUser;
+      });
+    };
+
+    // Listen for friend added event
+    const handleFriendAdded = (data) => {
+      const { friendId } = data;
+      console.log("App: Friend added via socket:", friendId);
+      
+      // Update user state immediately
+      setUser((prevUser) => {
+        if (!prevUser) return prevUser;
+        // Only add if not already in friends list
+        if (prevUser.friends.includes(friendId)) return prevUser;
+        const updatedUser = {
+          ...prevUser,
+          friends: [...prevUser.friends, friendId],
+        };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        return updatedUser;
+      });
+    };
+
+    // Register listeners
+    socket.on("friendRemoved", handleFriendRemoved);
+    socket.on("friendAdded", handleFriendAdded);
+    console.log("App: Registered global friend event listeners");
+
+    return () => {
+      socket.off("friendRemoved", handleFriendRemoved);
+      socket.off("friendAdded", handleFriendAdded);
+      console.log("App: Cleaned up global socket listeners");
+    };
+  }, [user?.id]); // Only re-run if user.id changes
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setLoggedIn(false);
     setUser(null);
-    navigate("/login"); // ✅ Use navigate instead
+
+    // Disconnect socket on logout
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
+    navigate("/login");
   };
 
   return (
@@ -104,7 +208,13 @@ function AppContent() {
         />
         <Route
           path="/home"
-          element={LoggedIn ? <HomePage /> : <Navigate to="/login" />}
+          element={
+            LoggedIn ? (
+              <HomePage socket={socketRef.current} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
         />
         <Route
           path="/profile"
@@ -124,7 +234,7 @@ function AppContent() {
           path="/posts"
           element={
             LoggedIn && user ? (
-              <PostsPage user={user} />
+              <PostsPage user={user} socket={socketRef.current} />
             ) : (
               <Navigate to="/login" />
             )
@@ -140,12 +250,11 @@ function AppContent() {
             )
           }
         />
-        4
         <Route
           path="/friends"
           element={
             LoggedIn && user ? (
-              <FriendsPage user={user} />
+              <FriendsPage user={user} socket={socketRef.current} />
             ) : (
               <Navigate to="/login" />
             )

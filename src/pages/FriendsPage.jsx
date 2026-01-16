@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { API_URL } from "../config";
-function FriendsPage({ user }) {
+function FriendsPage({ user, socket }) {
   const [friends, setFriends] = useState([]);
 
   const handleRemoveFriend = async (friendId) => {
@@ -32,6 +32,7 @@ function FriendsPage({ user }) {
     }
   };
 
+  // Fetch friends list when user.friends changes (updated by global socket listener)
   useEffect(() => {
     const fetchUsers = async () => {
       if (!user) return;
@@ -62,7 +63,8 @@ function FriendsPage({ user }) {
     };
 
     fetchUsers();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.friends?.length]); // Only re-fetch when friends count changes
 
   return (
     <div className="friends-page">
