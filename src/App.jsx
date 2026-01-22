@@ -117,7 +117,7 @@ function AppContent() {
     const handleFriendRemoved = (data) => {
       const { friendId } = data;
       console.log("App: Friend removed via socket:", friendId);
-      
+
       // Update user state immediately
       setUser((prevUser) => {
         if (!prevUser) return prevUser;
@@ -134,7 +134,7 @@ function AppContent() {
     const handleFriendAdded = (data) => {
       const { friendId } = data;
       console.log("App: Friend added via socket:", friendId);
-      
+
       // Update user state immediately
       setUser((prevUser) => {
         if (!prevUser) return prevUser;
@@ -149,14 +149,32 @@ function AppContent() {
       });
     };
 
+    // Listen for friend online event
+    const handleFriendOnline = (data) => {
+      const { friendId } = data;
+      console.log("App: Friend online via socket:", friendId);
+      // TODO: Update friend status in UI
+    };
+
+    // Listen for friend offline event
+    const handleFriendOffline = (data) => {
+      const { friendId } = data;
+      console.log("App: Friend offline via socket:", friendId);
+      // TODO: Update friend status in UI
+    };
+
     // Register listeners
     socket.on("friendRemoved", handleFriendRemoved);
     socket.on("friendAdded", handleFriendAdded);
+    socket.on("friendOnline", handleFriendOnline);
+    socket.on("friendOffline", handleFriendOffline);
     console.log("App: Registered global friend event listeners");
 
     return () => {
       socket.off("friendRemoved", handleFriendRemoved);
       socket.off("friendAdded", handleFriendAdded);
+      socket.off("friendOnline", handleFriendOnline);
+      socket.off("friendOffline", handleFriendOffline);
       console.log("App: Cleaned up global socket listeners");
     };
   }, [user?.id]); // Only re-run if user.id changes

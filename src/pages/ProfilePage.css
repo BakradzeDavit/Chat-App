@@ -1,0 +1,340 @@
+/* ========================================
+   REDESIGNED PROFILE PAGE
+   ======================================== */
+
+.profile-page {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  padding: 40px 32px;
+}
+
+.profile-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Profile Header with Logout */
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.profile-header h1 {
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.logout-btn {
+  background-color: var(--error-color);
+  color: white;
+  font-weight: 600;
+  padding: 11px 28px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  background-color: #c24d56;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(224, 108, 117, 0.4);
+}
+
+.logout-btn:active {
+  transform: translateY(0);
+}
+
+/* Main Profile Grid Layout */
+.profile-info {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+/* Avatar Card - Centered Design */
+.avatar-section {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px var(--shadow);
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
+}
+
+.avatar-section:hover .profile-avatar,
+.avatar-section:hover .profile-avatar-placeholder {
+  border-color: var(--accent-primary);
+}
+
+/* User Info Below Avatar */
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-info h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.user-info p {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 15px;
+}
+
+/* Upload Button */
+.upload-btn {
+  background-color: var(--accent-primary);
+  color: var(--text-primary);
+  font-weight: 600;
+  padding: 12px 32px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-btn:hover:not(:disabled) {
+  background-color: var(--accent-secondary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 125, 125, 0.3);
+}
+
+.upload-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.upload-btn:disabled {
+  background-color: var(--bg-tertiary);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.upload-btn i {
+  font-size: 16px;
+}
+
+/* Profile Sections (Username & Email) */
+.profile-section {
+  padding: 28px;
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px var(--shadow);
+  transition: all 0.2s ease;
+}
+
+.profile-section:hover {
+  border-color: var(--accent-primary);
+}
+
+.profile-section label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Username Edit Section */
+.rename-username {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.username-input {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 16px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.username-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  background-color: var(--bg-primary);
+  box-shadow: 0 0 0 3px rgba(139, 125, 125, 0.15);
+}
+
+.username-display {
+  flex: 1;
+  font-size: 18px;
+  color: var(--text-primary);
+  margin: 0;
+  padding: 12px 0;
+  font-weight: 500;
+}
+
+.edit-btn {
+  padding: 12px;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+}
+
+.edit-btn:hover {
+  background-color: var(--hover-bg);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.edit-btn:active {
+  transform: scale(0.95);
+}
+
+.edit-btn i {
+  transition: all 0.2s ease;
+}
+
+/* Email Display */
+.email-display {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin: 0;
+  padding: 12px 0;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+  .profile-info {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .avatar-section {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Profile Avatar Wrapper with Hover Effect */
+.profile-avatar-wrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.profile-avatar-wrapper.uploading {
+  cursor: not-allowed;
+}
+
+.profile-avatar-wrapper .profile-avatar,
+.profile-avatar-wrapper .profile-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 4px solid var(--border-color);
+  transition: all 0.3s ease;
+  object-fit: cover;
+}
+
+.profile-avatar-wrapper .profile-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56px;
+  font-weight: 700;
+  background-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.profile-avatar-wrapper.hovering .profile-avatar,
+.profile-avatar-wrapper.hovering .profile-avatar-placeholder {
+  border-color: var(--accent-secondary);
+  filter: brightness(0.6);
+}
+
+.gallery-icon {
+  position: absolute;
+  top: 53%;
+  left: 53%;
+  transform: translate(-50%, -50%);
+  font-size: 48px;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+  animation: fadeInScale 0.3s ease;
+}
+.upload-overlay {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(232, 232, 232, 0.2);
+  border-top: 3px solid var(--text-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.upload-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

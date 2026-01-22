@@ -2,12 +2,35 @@ const User = require("../models/user");
 
 module.exports = (socket, io) => {
   // User goes online
-  socket.on("userOnline", (userId) => {
+  socket.on("userOnline", async (userId) => {
     socket.userId = userId;
     socket.join(`user_${userId}`);
-    console.log(`✅ User ${userId} joined room user_${userId}, socket ID: ${socket.id}`);
-    // Emit to friends that user is online
-    // For simplicity, just log
+    console.log(
+      `✅ User ${userId} joined room user_${userId}, socket ID: ${socket.id}`,
+    );
+
+    const prevCount = io.userConnections.get(userId) || 0;
+    io.userConnections.set(userId, prevCount + 1);
+
+    if (prevCount === 0) {
+      // Update user status to online
+      try {
+        await User.findByIdAndUpdate(userId, { Status: "online" });
+        console.log(`User ${userId} is now online`);
+      } catch (error) {
+        console.error("Error updating user status:", error);
+      }
+
+      // Emit to friends that user is online
+      try {
+        const user = await User.findById(userId).populate("friends");
+        user.friends.forEach((friendId) => {
+          io.to(`user_${friendId}`).emit("friendOnline", { friendId: userId });
+        });
+      } catch (error) {
+        console.error("Error emitting friend online:", error);
+      }
+    }
   });
 
   // Send friend request
@@ -51,10 +74,10 @@ module.exports = (socket, io) => {
       friend.friends.push(userId);
 
       user.friendRequestsReceived = user.friendRequestsReceived.filter(
-        (id) => id.toString() !== friendId
+        (id) => id.toString() !== friendId,
       );
       friend.friendRequestsSent = friend.friendRequestsSent.filter(
-        (id) => id.toString() !== userId
+        (id) => id.toString() !== userId,
       );
 
       await user.save();
@@ -69,10 +92,38 @@ module.exports = (socket, io) => {
   });
 
   // User disconnects
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     if (socket.userId) {
       console.log(`User ${socket.userId} disconnected`);
-      // Could emit offline status
+
+      const prevCount = io.userConnections.get(socket.userId) || 0;
+      const newCount = prevCount - 1;
+
+      if (newCount <= 0) {
+        io.userConnections.delete(socket.userId);
+
+        // Update user status to offline
+        try {
+          await User.findByIdAndUpdate(socket.userId, { Status: "offline" });
+          console.log(`User ${socket.userId} is now offline`);
+        } catch (error) {
+          console.error("Error updating user status:", error);
+        }
+
+        // Emit to friends that user is offline
+        try {
+          const user = await User.findById(socket.userId).populate("friends");
+          user.friends.forEach((friendId) => {
+            io.to(`user_${friendId}`).emit("friendOffline", {
+              friendId: socket.userId,
+            });
+          });
+        } catch (error) {
+          console.error("Error emitting friend offline:", error);
+        }
+      } else {
+        io.userConnections.set(socket.userId, newCount);
+      }
     }
   });
 };

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { API_URL } from "../config";
+import "./ProfilePage.css";
 function ProfilePage({ handleLogout, user, setUser }) {
   const [username, setUsername] = useState(user?.displayName || "");
   const [changeusername, setChangeUsername] = useState(false);
@@ -28,7 +29,7 @@ function ProfilePage({ handleLogout, user, setUser }) {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
-          }
+          },
         );
         if (receivedRes.ok) {
           const receivedData = await receivedRes.json();

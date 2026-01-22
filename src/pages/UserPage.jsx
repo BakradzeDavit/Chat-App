@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { API_URL } from "../config";
+import "./UserPage.css";
 function UserPage({ currentUser }) {
   const { id } = useParams();
   const [userData, setUserData] = useState(null);
@@ -21,7 +22,7 @@ function UserPage({ currentUser }) {
 
         if (!response.ok) {
           throw new Error(
-            `Failed to fetch user: ${response.status} ${response.statusText}`
+            `Failed to fetch user: ${response.status} ${response.statusText}`,
           );
         }
 
@@ -56,7 +57,7 @@ function UserPage({ currentUser }) {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -70,12 +71,12 @@ function UserPage({ currentUser }) {
             alert(`Failed to send friend request: ${errorData.message}`);
           } catch (jsonParseError) {
             alert(
-              `Failed to send friend request: Server returned non-JSON response (status ${response.status}): ${responseText}`
+              `Failed to send friend request: Server returned non-JSON response (status ${response.status}): ${responseText}`,
             );
           }
         } catch (textError) {
           alert(
-            `Failed to send friend request: Unable to read server response (status ${response.status})`
+            `Failed to send friend request: Unable to read server response (status ${response.status})`,
           );
         }
       }
@@ -93,7 +94,7 @@ function UserPage({ currentUser }) {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -107,12 +108,12 @@ function UserPage({ currentUser }) {
             alert(`Failed to accept friend request: ${errorData.message}`);
           } catch (jsonParseError) {
             alert(
-              `Failed to accept friend request: Server returned non-JSON response (status ${response.status}): ${responseText}`
+              `Failed to accept friend request: Server returned non-JSON response (status ${response.status}): ${responseText}`,
             );
           }
         } catch (textError) {
           alert(
-            `Failed to accept friend request: Unable to read server response (status ${response.status})`
+            `Failed to accept friend request: Unable to read server response (status ${response.status})`,
           );
         }
       }
@@ -131,7 +132,7 @@ function UserPage({ currentUser }) {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -145,12 +146,12 @@ function UserPage({ currentUser }) {
             alert(`Failed to cancel friend request: ${errorData.message}`);
           } catch (jsonParseError) {
             alert(
-              `Failed to cancel friend request: Server returned non-JSON response (status ${response.status}): ${responseText}`
+              `Failed to cancel friend request: Server returned non-JSON response (status ${response.status}): ${responseText}`,
             );
           }
         } catch (textError) {
           alert(
-            `Failed to cancel friend request: Unable to read server response (status ${response.status})`
+            `Failed to cancel friend request: Unable to read server response (status ${response.status})`,
           );
         }
       }

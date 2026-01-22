@@ -63,8 +63,14 @@ const userSchema = new mongoose.Schema(
     ],
 
     friendRequestsSent: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+
+    Status: {
+      type: String,
+      enum: ["online", "offline"],
+      default: "offline",
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 userSchema.pre("save", async function () {
@@ -77,4 +83,4 @@ userSchema.methods.comparePassword = function (enteredPassword) {
   return bcrypt.compare(enteredPassword, this.password);
 };
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.models.User || mongoose.model("User", userSchema);

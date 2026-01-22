@@ -1,0 +1,311 @@
+/* ========================================
+   TWITTER/ROBLOX STYLE USER PAGE
+   ======================================== */
+
+.user-page-container {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+}
+
+.user-page-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+  background-color: var(--bg-secondary);
+  min-height: 100vh;
+  border-left: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+}
+
+/* Cover Banner */
+.user-cover-banner {
+  width: 100%;
+  height: 200px;
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary),
+    var(--accent-secondary)
+  );
+  position: relative;
+}
+
+/* Profile Section */
+.user-profile-section {
+  padding: 0 24px;
+  position: relative;
+}
+
+.user-profile-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: -80px;
+  margin-bottom: 16px;
+}
+
+/* Avatar */
+.user-avatar-container {
+  position: relative;
+}
+
+.user-avatar-large,
+.user-avatar-placeholder-large {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 5px solid var(--bg-secondary);
+  background-color: var(--bg-secondary);
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.user-avatar-large {
+  object-fit: cover;
+}
+
+.user-avatar-placeholder-large {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  font-weight: 700;
+  background-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+/* Action Buttons */
+.user-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.user-action-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.user-action-btn:hover {
+  background-color: var(--hover-bg);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.user-follow-btn {
+  padding: 10px 28px;
+  border-radius: 20px;
+  border: none;
+  background-color: var(--accent-primary);
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-follow-btn:hover {
+  background-color: var(--accent-secondary);
+  transform: translateY(-1px);
+}
+
+/* User Info Details */
+.user-info-details {
+  padding: 16px 0 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.user-display-name {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.user-email-handle {
+  font-size: 16px;
+  color: var(--text-muted);
+  margin: 0 0 20px 0;
+}
+
+/* Stats Row */
+.user-stats-row {
+  display: flex;
+  gap: 24px;
+}
+
+.user-stat-item {
+  display: flex;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.user-stat-item:hover .stat-value {
+  text-decoration: underline;
+}
+
+.stat-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-label {
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+/* Tabs Navigation */
+.user-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.user-tab {
+  flex: 1;
+  padding: 16px 0;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--text-muted);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.user-tab i {
+  font-size: 18px;
+}
+
+.user-tab:hover {
+  background-color: var(--hover-bg);
+  color: var(--text-secondary);
+}
+
+.user-tab.active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+/* Tab Content */
+.user-tab-content {
+  padding: 24px;
+  min-height: 400px;
+}
+
+.empty-tab-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  color: var(--text-muted);
+}
+
+.empty-tab-state .empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-tab-state p {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.about-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.about-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background-color: var(--bg-tertiary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.about-item i {
+  font-size: 20px;
+  color: var(--text-muted);
+}
+
+.about-item span {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .user-cover-banner {
+    height: 150px;
+  }
+
+  .user-profile-top {
+    margin-top: -60px;
+  }
+
+  .user-avatar-large,
+  .user-avatar-placeholder-large {
+    width: 100px;
+    height: 100px;
+  }
+
+  .user-avatar-placeholder-large {
+    font-size: 48px;
+  }
+
+  .user-display-name {
+    font-size: 22px;
+  }
+
+  .user-stats-row {
+    gap: 16px;
+  }
+
+  .user-tab span {
+    display: none;
+  }
+
+  .user-tab-content {
+    padding: 16px;
+  }
+
+  .user-page-wrapper {
+    border-left: none;
+    border-right: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-profile-section {
+    padding: 0 16px;
+  }
+
+  .user-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .user-follow-btn {
+    padding: 8px 20px;
+    font-size: 14px;
+  }
+}

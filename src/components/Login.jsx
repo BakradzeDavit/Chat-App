@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../config";
+import "./Login.css";
 
 function Login({ setLoggedIn, setUser }) {
   const [email, setEmail] = useState("");

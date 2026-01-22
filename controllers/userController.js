@@ -11,7 +11,7 @@ const updateUsername = async (req, res) => {
     const updatedUser = await userModel.findByIdAndUpdate(
       userId,
       { displayName: username },
-      { new: true }
+      { new: true },
     );
     await PostModel.updateMany({ author: userId }, { displayName: username });
     res.status(200).json({
@@ -44,7 +44,7 @@ const uploadProfilePic = async (req, res) => {
         (error, result) => {
           if (error) reject(error);
           else resolve(result);
-        }
+        },
       );
       uploadStream.end(req.file.buffer);
     });
@@ -52,11 +52,11 @@ const uploadProfilePic = async (req, res) => {
     const user = await userModel.findByIdAndUpdate(
       req.user.id,
       { profileImage: result.secure_url },
-      { new: true }
+      { new: true },
     );
     await PostModel.updateMany(
       { author: req.user.id },
-      { profileImage: result.secure_url }
+      { profileImage: result.secure_url },
     );
     res.json({
       message: "Profile picture uploaded successfully",
@@ -85,7 +85,7 @@ const getUserProfile = async (req, res) => {
     const user = await userModel
       .findById(id)
       .select(
-        "displayName email profileImage backgroundImage PostsCount friends Notifications"
+        "displayName email profileImage backgroundImage PostsCount friends Notifications",
       )
       .populate("Notifications.sender", "displayName profileImage");
     if (!user) {
@@ -95,13 +95,13 @@ const getUserProfile = async (req, res) => {
     // Fetch current user to check friend status
     const currentUser = await userModel.findById(req.user.id);
     const isFriend = currentUser.friends.some(
-      (friendId) => friendId.toString() === id
+      (friendId) => friendId.toString() === id,
     );
     const hasSentRequest = currentUser.friendRequestsSent.some(
-      (reqId) => reqId.toString() === id
+      (reqId) => reqId.toString() === id,
     );
     const hasReceivedRequest = currentUser.friendRequestsReceived.some(
-      (reqId) => reqId.toString() === id
+      (reqId) => reqId.toString() === id,
     );
 
     res.json({
@@ -172,7 +172,7 @@ const sendFriendRequest = async (req, res) => {
     const notificationExists = target.Notifications.some(
       (n) =>
         n.type === "friendRequest" &&
-        n.sender.toString() === sender._id.toString()
+        n.sender.toString() === sender._id.toString(),
     );
 
     if (!notificationExists) {
@@ -185,11 +185,12 @@ const sendFriendRequest = async (req, res) => {
     await sender.save();
     await target.save();
 
-    // Emit socket event for new friend request notification  
+    // Emit socket event for new friend request notification
     if (req.io) {
       // Get the last notification (the one we just added)
-      const lastNotification = target.Notifications[target.Notifications.length - 1];
-      
+      const lastNotification =
+        target.Notifications[target.Notifications.length - 1];
+
       req.io.to(`user_${targetUserId}`).emit("newNotification", {
         _id: lastNotification._id,
         type: "friendRequest",
@@ -243,10 +244,10 @@ const acceptFriendRequest = async (req, res) => {
 
     // Remove from requests
     receiver.friendRequestsReceived = receiver.friendRequestsReceived.filter(
-      (id) => id.toString() !== senderId
+      (id) => id.toString() !== senderId,
     );
     sender.friendRequestsSent = sender.friendRequestsSent.filter(
-      (id) => id.toString() !== receiverId
+      (id) => id.toString() !== receiverId,
     );
 
     // Remove notification
@@ -255,7 +256,7 @@ const acceptFriendRequest = async (req, res) => {
         !(
           n.type === "friendRequest" &&
           n.sender.toString() === sender._id.toString()
-        )
+        ),
     );
 
     await receiver.save();
@@ -263,9 +264,15 @@ const acceptFriendRequest = async (req, res) => {
 
     // Emit socket events for real-time updates
     if (req.io) {
-      console.log(`Emitting friendAdded to user_${receiverId} and user_${senderId}`);
-      req.io.to(`user_${receiverId}`).emit("friendAdded", { friendId: senderId });
-      req.io.to(`user_${senderId}`).emit("friendAdded", { friendId: receiverId });
+      console.log(
+        `Emitting friendAdded to user_${receiverId} and user_${senderId}`,
+      );
+      req.io
+        .to(`user_${receiverId}`)
+        .emit("friendAdded", { friendId: senderId });
+      req.io
+        .to(`user_${senderId}`)
+        .emit("friendAdded", { friendId: receiverId });
     } else {
       console.log("WARNING: req.io is not available");
     }
@@ -298,10 +305,10 @@ const cancelFriendRequest = async (req, res) => {
 
     // Remove from sent and received
     sender.friendRequestsSent = sender.friendRequestsSent.filter(
-      (id) => id.toString() !== targetUserId
+      (id) => id.toString() !== targetUserId,
     );
     target.friendRequestsReceived = target.friendRequestsReceived.filter(
-      (id) => id.toString() !== senderId
+      (id) => id.toString() !== senderId,
     );
 
     // Remove notification from target
@@ -310,7 +317,7 @@ const cancelFriendRequest = async (req, res) => {
         !(
           n.type === "friendRequest" &&
           n.sender.toString() === sender._id.toString()
-        )
+        ),
     );
 
     await sender.save();
@@ -383,7 +390,9 @@ const removeFriend = async (req, res) => {
 
     // Emit socket events for real-time updates
     if (req.io) {
-      console.log(`Emitting friendRemoved to user_${userId} and user_${friendId}`);
+      console.log(
+        `Emitting friendRemoved to user_${userId} and user_${friendId}`,
+      );
       req.io.to(`user_${userId}`).emit("friendRemoved", { friendId });
       req.io.to(`user_${friendId}`).emit("friendRemoved", { friendId: userId });
     } else {
@@ -404,7 +413,7 @@ const getUsers = async (req, res) => {
   try {
     const users = await userModel.find(
       { _id: { $ne: req.user.id } },
-      "displayName profileImage _id" // only safe fields
+      "displayName profileImage Status _id", // only safe fields
     );
 
     res.json(users);
@@ -421,7 +430,7 @@ const deleteNotification = async (req, res) => {
 
     const user = await userModel.findById(userId);
     user.Notifications = user.Notifications.filter(
-      (n) => n._id.toString() !== notificationId
+      (n) => n._id.toString() !== notificationId,
     );
     await user.save();
 

@@ -1,10 +1,21 @@
 const chatSocket = require("./chat.socket");
 const notifSocket = require("./notif.socket");
 const userSocket = require("./user.socket");
+const User = require("../models/user");
 
 module.exports = (io) => {
-  io.on("connection", (socket) => {
+  io.userConnections = io.userConnections || new Map();
+
+  io.on("connection", async (socket) => {
     console.log("User connected:", socket.id);
+
+    // Get user ID from socket handshake
+    const userId =
+      socket.handshake.auth.userId || socket.handshake.query.userId;
+
+    if (userId) {
+      socket.userId = userId;
+    }
 
     // Initialize socket handlers
     chatSocket(socket, io);

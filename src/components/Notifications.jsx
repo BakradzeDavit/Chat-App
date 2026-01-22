@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../config";
+import "./Notifications.css";
 
 function Notifications({ user }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,7 +23,7 @@ function Notifications({ user }) {
 
     const handleNewNotification = async (data) => {
       console.log("New notification received:", data);
-      
+
       // Fetch updated user data to get populated notification
       try {
         const response = await fetch(`${API_URL}/users/${user.id}/profile`, {
@@ -30,7 +31,7 @@ function Notifications({ user }) {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-        
+
         if (response.ok) {
           const userData = await response.json();
           setNotifications(userData.user.Notifications);
@@ -47,25 +48,28 @@ function Notifications({ user }) {
       socket.off("newNotification", handleNewNotification);
     };
   }, [user?.id]);
-  
+
   const handleNotificationClick = async (notification) => {
     // Remove from local state immediately (optimistic update)
     setNotifications((prevNotifications) =>
-      prevNotifications.filter((n) => n._id !== notification._id)
+      prevNotifications.filter((n) => n._id !== notification._id),
     );
-    
+
     // Navigate to profile immediately
     navigate(`/users/${notification.sender._id}/profile`);
-    
+
     // Delete from backend in background
     try {
-      const response = await fetch(`${API_URL}/notifications/${notification._id}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+      const response = await fetch(
+        `${API_URL}/notifications/${notification._id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         },
-      });
+      );
 
       if (!response.ok) {
         console.error("Failed to delete notification from backend");
@@ -126,12 +130,16 @@ function Notifications({ user }) {
               ) : null}
               {notification.type === "friendRequest" ? (
                 <p>
-                  <strong>{notification.sender?.displayName || "Someone"}</strong>{" "}
+                  <strong>
+                    {notification.sender?.displayName || "Someone"}
+                  </strong>{" "}
                   sent you a friend request.
                 </p>
               ) : (
                 <p>
-                  <strong>{notification.sender?.displayName || "Someone"}</strong>{" "}
+                  <strong>
+                    {notification.sender?.displayName || "Someone"}
+                  </strong>{" "}
                   liked your post.
                 </p>
               )}

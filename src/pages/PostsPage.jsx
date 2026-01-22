@@ -5,6 +5,7 @@ import { API_URL } from "../config";
 import { Link } from "react-router-dom";
 import DeletePost from "../components/DeletePost";
 import LikePost from "../components/LikePost";
+import "./PostsPage.css";
 
 function PostsPage({ user }) {
   const [posts, setPosts] = useState([]);
@@ -39,7 +40,7 @@ function PostsPage({ user }) {
                 ? p.likes.filter((id) => id !== user.id)
                 : [...(p.likes || []), user.id],
             }
-          : p
+          : p,
       );
     });
 
@@ -62,8 +63,8 @@ function PostsPage({ user }) {
                   likesCount: data.likesCount,
                   likes: data.likes || [],
                 }
-              : p
-          )
+              : p,
+          ),
         );
       } else {
         // 3. Revert on Error
@@ -75,10 +76,10 @@ function PostsPage({ user }) {
 
           // If we optimistically liked it, and it failed, we need to *unlike* it (revert)
           // Effectively we just toggle back.
-          
+
           // However, simpler is just to re-fetch or toggle back based on previous knowledge.
           // Since we don't have previous knowledge easily, we can just toggle back.
-           return prevPosts.map((p) =>
+          return prevPosts.map((p) =>
             p.id === postId
               ? {
                   ...p,
@@ -87,14 +88,14 @@ function PostsPage({ user }) {
                     ? p.likes.filter((id) => id !== user.id)
                     : [...(p.likes || []), user.id],
                 }
-              : p
+              : p,
           );
         });
         console.error("Failed to like post");
       }
     } catch (error) {
       console.error("Error liking post:", error);
-       // Revert logic here as well if needed, similar to above
+      // Revert logic here as well if needed, similar to above
     }
   };
 
@@ -106,8 +107,8 @@ function PostsPage({ user }) {
 
     const fetchPosts = async () => {
       // Don't set loading to true on every background refresh if we already have posts
-      if(posts.length === 0) setIsLoading(true);
-      
+      if (posts.length === 0) setIsLoading(true);
+
       const token = localStorage.getItem("token");
 
       if (!token) {
@@ -161,7 +162,7 @@ function PostsPage({ user }) {
     const handlePostLiked = (data) => {
       const { postId, likerId, likesCount, likes } = data;
       console.log("Post liked via socket:", data);
-      
+
       setPosts((prevPosts) =>
         prevPosts.map((p) =>
           p.id === postId
@@ -170,8 +171,8 @@ function PostsPage({ user }) {
                 likesCount: likesCount,
                 likes: likes || [],
               }
-            : p
-        )
+            : p,
+        ),
       );
     };
 
@@ -181,7 +182,6 @@ function PostsPage({ user }) {
       socketInstance.off("postLiked", handlePostLiked);
     };
   }, [user]);
-
 
   const handleCreate = async () => {
     if (newPost.trim()) {
@@ -267,13 +267,17 @@ function PostsPage({ user }) {
 
                   <div className="interactions">
                     <LikePost onlike={handleLike} post={post} user={user} />
-                    <div 
-                      className="Comment" 
+                    <div
+                      className="Comment"
                       onClick={() => {
                         // Toggle comment input visibility
-                        setPosts(prev => prev.map(p => 
-                          p.id === post.id ? { ...p, showCommentInput: !p.showCommentInput } : p
-                        ));
+                        setPosts((prev) =>
+                          prev.map((p) =>
+                            p.id === post.id
+                              ? { ...p, showCommentInput: !p.showCommentInput }
+                              : p,
+                          ),
+                        );
                       }}
                     >
                       <i className="bi bi-chat"></i>
@@ -283,67 +287,89 @@ function PostsPage({ user }) {
                       <DeletePost post={post} onDelete={handleDeletePost} />
                     )}
                   </div>
-                  
+
                   {/* Comments Section */}
-                  {(post.showCommentInput || (post.comments && post.comments.length > 0)) && (
+                  {(post.showCommentInput ||
+                    (post.comments && post.comments.length > 0)) && (
                     <div className="comments-section">
-                       {/* Comment Input */}
-                       {post.showCommentInput && (
-                         <div className="comment-input-wrapper">
-                            <input 
-                              type="text" 
-                              placeholder="Write a comment..." 
-                              className="comment-input"
-                              onKeyDown={async (e) => {
-                                if (e.key === 'Enter' && e.target.value.trim()) {
-                                  const text = e.target.value;
-                                  e.target.value = ''; // Clear input
-                                  
-                                  try {
-                                    const res = await fetch(`${API_URL}/comments`, {
+                      {/* Comment Input */}
+                      {post.showCommentInput && (
+                        <div className="comment-input-wrapper">
+                          <input
+                            type="text"
+                            placeholder="Write a comment..."
+                            className="comment-input"
+                            onKeyDown={async (e) => {
+                              if (e.key === "Enter" && e.target.value.trim()) {
+                                const text = e.target.value;
+                                e.target.value = ""; // Clear input
+
+                                try {
+                                  const res = await fetch(
+                                    `${API_URL}/comments`,
+                                    {
                                       method: "POST",
                                       headers: {
                                         "Content-Type": "application/json",
                                         Authorization: `Bearer ${localStorage.getItem("token")}`,
                                       },
-                                      body: JSON.stringify({ postId: post.id, text }),
-                                    });
-                                    
-                                    if (res.ok) {
-                                      const data = await res.json();
-                                      setPosts(prev => prev.map(p => 
-                                        p.id === post.id ? { 
-                                          ...p, 
-                                          comments: [data.comment, ...(p.comments || [])],
-                                          commentsCount: (p.commentsCount || 0) + 1
-                                        } : p
-                                      ));
-                                    }
-                                  } catch (err) {
-                                    console.error("Error posting comment", err);
-                                  }
-                                }
-                              }}
-                            />
-                         </div>
-                       )}
+                                      body: JSON.stringify({
+                                        postId: post.id,
+                                        text,
+                                      }),
+                                    },
+                                  );
 
-                       {/* Recent Comments Preview */}
-                       {post.comments && post.comments.length > 0 && (
-                         <div className="recent-comments">
-                           {post.comments.slice(0, 2).map((comment, idx) => (
-                             <div key={comment._id || idx} className="comment-bubble">
-                               <span className="comment-author">{comment.author?.displayName}:</span>
-                               <span className="comment-text">{comment.text}</span>
-                             </div>
-                           ))}
-                           {post.comments.length > 2 && (
-                             <div className="view-more-comments">
-                               View all {post.comments.length} comments
-                             </div>
-                           )}
-                         </div>
-                       )}
+                                  if (res.ok) {
+                                    const data = await res.json();
+                                    setPosts((prev) =>
+                                      prev.map((p) =>
+                                        p.id === post.id
+                                          ? {
+                                              ...p,
+                                              comments: [
+                                                data.comment,
+                                                ...(p.comments || []),
+                                              ],
+                                              commentsCount:
+                                                (p.commentsCount || 0) + 1,
+                                            }
+                                          : p,
+                                      ),
+                                    );
+                                  }
+                                } catch (err) {
+                                  console.error("Error posting comment", err);
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Recent Comments Preview */}
+                      {post.comments && post.comments.length > 0 && (
+                        <div className="recent-comments">
+                          {post.comments.slice(0, 2).map((comment, idx) => (
+                            <div
+                              key={comment._id || idx}
+                              className="comment-bubble"
+                            >
+                              <span className="comment-author">
+                                {comment.author?.displayName}:
+                              </span>
+                              <span className="comment-text">
+                                {comment.text}
+                              </span>
+                            </div>
+                          ))}
+                          {post.comments.length > 2 && (
+                            <div className="view-more-comments">
+                              View all {post.comments.length} comments
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
