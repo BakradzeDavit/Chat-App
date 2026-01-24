@@ -12,16 +12,21 @@ module.exports = (socket, io) => {
     const prevCount = io.userConnections.get(userId) || 0;
     io.userConnections.set(userId, prevCount + 1);
 
-    if (prevCount === 0) {
-      // Update user status to online
-      try {
-        await User.findByIdAndUpdate(userId, { Status: "online" });
-        console.log(`User ${userId} is now online`);
-      } catch (error) {
-        console.error("Error updating user status:", error);
-      }
+    // Always update status to online to handle reconnections reliably
+    try {
+      await User.findByIdAndUpdate(userId, { Status: "online" });
+      console.log(`User ${userId} is now online (force update)`);
+    } catch (error) {
+      console.error("Error updating user status:", error);
+    }
 
-      // Emit to friends that user is online
+    if (prevCount === 0) {
+      // Emit to friends that user is online (only if they were offline before)
+      // Actually, we should probably emit this always too? 
+      // If we emit always, friends get "online" event multiple times.
+      // Front-end handles it (idempotent state update).
+      // But let's stick to only emitting if new connection, OR just emit safely.
+      // If we emit always, it ensures friends UI is consistent.
       try {
         const user = await User.findById(userId).populate("friends");
         user.friends.forEach((friend) => {
@@ -30,6 +35,12 @@ module.exports = (socket, io) => {
       } catch (error) {
         console.error("Error emitting friend online:", error);
       }
+    } else {
+      // Even if prevCount > 0, we might want to emit to be safe? 
+      // Let's keep emission inside prevCount === 0 for noise reduction, 
+      // but the DB update is the critical "100%" fix.
+      // Wait, if server restarted, prevCount is 0 for everyone reconnecting.
+      // So logic holds.
     }
   });
 

@@ -39,6 +39,24 @@ function AppContent() {
 
       socketRef.current.on("connect", () => {
         console.log("Socket connected:", socketRef.current.id);
+        // Re-emit user online event if we have a user
+        // We need to access the current user state, but inside this closure 'user' might be stale if not careful.
+        // However, we can use the window.user (dirty) or we can just rely on the effect below to handle INITIAL connection.
+        // But for RECONNECTION, we need this.
+        // Since we can't easily access 'user' state here without adding it to dependency (which restarts socket),
+        // we can check localStorage or use a ref for user ID.
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser);
+            if (parsed && parsed.id) {
+              socketRef.current.emit("userOnline", parsed.id);
+              console.log("Re-emitted userOnline for:", parsed.id);
+            }
+          } catch (e) {
+            console.error("Error parsing stored user for socket reconnect:", e);
+          }
+        }
       });
 
       socketRef.current.on("disconnect", () => {
