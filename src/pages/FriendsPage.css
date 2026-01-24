@@ -1,7 +1,7 @@
 /* Messenger Layout */
 .friends-page {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - 80px);
   background-color: var(--bg-primary);
   overflow: hidden;
 }
@@ -14,6 +14,7 @@
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary);
+  overflow: hidden;
 }
 
 .sidebar-header {
@@ -61,9 +62,14 @@
 .friends-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 0;
   margin: 0;
 }
+
+/* Hide scrollbar for friends list */
+
+
 
 .friend-item {
   padding: 12px 20px;
@@ -104,13 +110,14 @@
   right: 2px;
   width: 14px;
   height: 14px;
-
   border-radius: 50%;
   border: 3px solid var(--bg-primary);
 }
+
 .online {
   background-color: var(--success-color);
 }
+
 .offline {
   background-color: var(--offline-color);
 }
@@ -157,9 +164,11 @@
 /* Right Side - Chat Area */
 .chat-area {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary);
+  overflow: hidden;
 }
 
 .chat-header {
@@ -168,6 +177,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .chat-header-info {
@@ -234,11 +244,31 @@
 
 .messages-container {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Hide scrollbar for messages */
+.messages-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .message-wrapper {
@@ -284,8 +314,11 @@
 }
 
 .message-input-area {
-  padding: 16px 24px;
+  padding: 16px 24px 20px 24px;
   border-top: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  flex-shrink: 0;
+  margin-bottom: 20px ;
 }
 
 .message-input-wrapper {

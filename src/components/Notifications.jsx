@@ -34,7 +34,29 @@ function Notifications({ user }) {
 
         if (response.ok) {
           const userData = await response.json();
-          setNotifications(userData.user.Notifications);
+          let notifications = userData.user.Notifications;
+
+          // Filter out notifications from self
+          notifications = notifications.filter((n) => n.sender._id !== user.id);
+
+          // Delete self-notifications from backend
+          const selfNotifications = userData.user.Notifications.filter(
+            (n) => n.sender._id === user.id,
+          );
+          selfNotifications.forEach(async (n) => {
+            try {
+              await fetch(`${API_URL}/notifications/${n._id}`, {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+              });
+            } catch (error) {
+              console.error("Error deleting self-notification:", error);
+            }
+          });
+
+          setNotifications(notifications);
         }
       } catch (error) {
         console.error("Error fetching updated notifications:", error);

@@ -24,8 +24,8 @@ module.exports = (socket, io) => {
       // Emit to friends that user is online
       try {
         const user = await User.findById(userId).populate("friends");
-        user.friends.forEach((friendId) => {
-          io.to(`user_${friendId}`).emit("friendOnline", { friendId: userId });
+        user.friends.forEach((friend) => {
+          io.to(`user_${friend._id}`).emit("friendOnline", { friendId: userId });
         });
       } catch (error) {
         console.error("Error emitting friend online:", error);
@@ -113,8 +113,8 @@ module.exports = (socket, io) => {
         // Emit to friends that user is offline
         try {
           const user = await User.findById(socket.userId).populate("friends");
-          user.friends.forEach((friendId) => {
-            io.to(`user_${friendId}`).emit("friendOffline", {
+          user.friends.forEach((friend) => {
+            io.to(`user_${friend._id}`).emit("friendOffline", {
               friendId: socket.userId,
             });
           });

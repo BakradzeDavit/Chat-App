@@ -353,14 +353,35 @@ function PostsPage({ user }) {
                           {post.comments.slice(0, 2).map((comment, idx) => (
                             <div
                               key={comment._id || idx}
-                              className="comment-bubble"
+                              className="comment-item"
                             >
-                              <span className="comment-author">
-                                {comment.author?.displayName}:
-                              </span>
-                              <span className="comment-text">
-                                {comment.text}
-                              </span>
+                              <Link
+                                to={`/users/${comment.author?._id}/profile`}
+                                className="comment-avatar-link"
+                              >
+                                {comment.author?.profileImage &&
+                                comment.author?.profileImage !== "letter" ? (
+                                  <img
+                                    src={comment.author.profileImage}
+                                    alt="Avatar"
+                                    className="comment-avatar"
+                                  />
+                                ) : (
+                                  <div className="comment-avatar-placeholder">
+                                    {comment.author?.displayName
+                                      ?.charAt(0)
+                                      .toUpperCase() || "U"}
+                                  </div>
+                                )}
+                              </Link>
+                              <div className="comment-bubble">
+                                <span className="comment-author">
+                                  {comment.author?.displayName}:
+                                </span>
+                                <span className="comment-text">
+                                  {comment.text}
+                                </span>
+                              </div>
                             </div>
                           ))}
                           {post.comments.length > 2 && (

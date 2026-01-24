@@ -2,20 +2,25 @@
 
 /* Color Variables for Easy Theme Management */
 :root {
-  --bg-primary: #1e1e2e;
-  --bg-secondary: #2a2a3e;
-  --bg-tertiary: #363651;
-  --accent-primary: #8b7d7d;
-  --accent-secondary: #a69494;
-  --text-primary: #e8e8e8;
-  --text-secondary: #b8b8b8;
-  --text-muted: #8a8a8a;
-  --border-color: #4a4a5e;
-  --hover-bg: #3d3d52;
-  --error-color: #e06c75;
-  --success-color: #98c379;
-  --offline-color: #71717a;
-  --shadow: rgba(0, 0, 0, 0.3);
+  --bg-primary: #0e0e0e;
+  --bg-secondary: #181818;
+  --bg-tertiary: #222222;
+
+  --accent-primary: #ef4444;
+  --accent-secondary: #f87171;
+
+  --text-primary: #fafafa;
+  --text-secondary: #d4d4d4;
+  --text-muted: #a1a1aa;
+
+  --border-color: #2f2f2f;
+  --hover-bg: #292929;
+
+  --error-color: #dc2626;
+  --success-color: #22c55e;
+  --offline-color: #6b7280;
+
+  --shadow: rgba(0, 0, 0, 0.65);
 }
 
 /* Global Styles */

@@ -1,10 +1,17 @@
 const express = require("express");
 const multer = require("multer");
 const { authenticateToken } = require("../middleware/auth");
+const { validate } = require("../middleware/validate");
+const {
+  updateUsernameSchema,
+  userIdParamSchema,
+  deleteNotificationSchema,
+} = require("../schemas/userSchemas");
 const {
   updateUsername,
   uploadProfilePic,
   getUserProfile,
+  getUserPosts,
   sendFriendRequest,
   acceptFriendRequest,
   cancelFriendRequest,
@@ -22,54 +29,84 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// ✅ Update username
-router.put("/update-username", authenticateToken, updateUsername);
+// ✅ Update username with validation
+router.put(
+  "/update-username",
+  authenticateToken,
+  validate(updateUsernameSchema),
+  updateUsername,
+);
 
 // ✅ Upload profile picture
 router.post(
   "/upload-profile-pic",
   authenticateToken,
   upload.single("profilePic"),
-  uploadProfilePic
+  uploadProfilePic,
 );
 
-router.get("/users/:id/profile", authenticateToken, getUserProfile);
+router.get(
+  "/users/:id/profile",
+  authenticateToken,
+  validate(userIdParamSchema),
+  getUserProfile,
+);
+
+router.get(
+  "/users/:id/posts",
+  authenticateToken,
+  validate(userIdParamSchema),
+  getUserPosts,
+);
 
 router.post(
   "/users/:id/send-friend-request",
   authenticateToken,
-  sendFriendRequest
+  validate(userIdParamSchema),
+  sendFriendRequest,
 );
 
 router.post(
   "/users/:id/accept-friend-request",
   authenticateToken,
-  acceptFriendRequest
+  validate(userIdParamSchema),
+  acceptFriendRequest,
 );
 
 router.post(
   "/users/:id/cancel-friend-request",
   authenticateToken,
-  cancelFriendRequest
+  validate(userIdParamSchema),
+  cancelFriendRequest,
 );
 
 router.get(
   "/users/friendRequestsReceived",
   authenticateToken,
-  getFriendRequestsReceived
+  getFriendRequestsReceived,
 );
 
 router.get(
   "/users/friendRequestsSent",
   authenticateToken,
-  getFriendRequestsSent
+  getFriendRequestsSent,
 );
 
-router.post("/users/:id/remove-friend", authenticateToken, removeFriend);
+router.post(
+  "/users/:id/remove-friend",
+  authenticateToken,
+  validate(userIdParamSchema),
+  removeFriend,
+);
 
 router.get("/users", authenticateToken, getUsers);
 
-// ✅ Delete notification endpoint
-router.delete("/notifications/:id", authenticateToken, deleteNotification);
+// ✅ Delete notification endpoint with validation
+router.delete(
+  "/notifications/:id",
+  authenticateToken,
+  validate(deleteNotificationSchema),
+  deleteNotification,
+);
 
 module.exports = router;

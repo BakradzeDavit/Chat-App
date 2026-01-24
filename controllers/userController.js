@@ -128,6 +128,78 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+const getUserPosts = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+    const posts = await PostModel.find({ author: id })
+      .populate({
+        path: "comments",
+        populate: { path: "author", select: "displayName profileImage" },
+      })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    // Transform to match frontend expectations
+    const transformedPosts = posts.map((post) => {
+      try {
+        return {
+          id: post._id.toString(),
+          text: post.text || "",
+          author: post.author ? post.author.toString() : "",
+          displayName: post.displayName || "Unknown User",
+          profileImage: post.profileImage || "letter",
+          likes: Array.isArray(post.likes)
+            ? post.likes
+                .map((id) => {
+                  try {
+                    if (!id) return null;
+                    if (typeof id === "object" && id._id) {
+                      return id._id.toString();
+                    }
+                    return id.toString();
+                  } catch (e) {
+                    console.error("Error converting like ID:", e);
+                    return null;
+                  }
+                })
+                .filter(Boolean)
+            : [],
+          likesCount: post.likesCount || 0,
+          commentsCount: post.comments ? post.comments.length : 0,
+          comments: post.comments || [],
+          createdAt: post.createdAt || new Date(),
+        };
+      } catch (postError) {
+        console.error("Error transforming post:", postError, post);
+        return {
+          id: post._id ? post._id.toString() : "unknown",
+          text: "Error loading post",
+          author: "",
+          displayName: "Unknown User",
+          profileImage: "letter",
+          likes: [],
+          likesCount: 0,
+          commentsCount: 0,
+          comments: [],
+          createdAt: new Date(),
+        };
+      }
+    });
+
+    res.json({ posts: transformedPosts });
+  } catch (err) {
+    console.error("Error fetching user posts:", err);
+    res.status(500).json({
+      message: "Error fetching user posts",
+      error: err.message,
+    });
+  }
+};
+
 const sendFriendRequest = async (req, res) => {
   try {
     const { id: targetUserId } = req.params;
@@ -447,6 +519,7 @@ module.exports = {
   updateUsername,
   uploadProfilePic,
   getUserProfile,
+  getUserPosts,
   sendFriendRequest,
   acceptFriendRequest,
   cancelFriendRequest,

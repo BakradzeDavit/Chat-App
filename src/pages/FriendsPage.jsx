@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { API_URL } from "../config";
 import "./FriendsPage.css";
 
@@ -8,6 +8,8 @@ function FriendsPage({ user, socket }) {
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const messagesEndRef = useRef(null);
 
   const handleRemoveFriend = async (friendId) => {
     try {
@@ -78,8 +80,8 @@ function FriendsPage({ user, socket }) {
         }
 
         const data = await res.json();
-        const friendsOnly = data.filter((friend) =>
-          user.friends.includes(friend._id),
+        const friendsOnly = data.filter(
+          (friend) => user.friends && user.friends.includes(friend._id),
         );
 
         setFriends(friendsOnly);
@@ -91,6 +93,49 @@ function FriendsPage({ user, socket }) {
     fetchUsers();
   }, [user?.id, user?.friends?.length]);
 
+  // ✅ Socket listener for online/offline status
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleFriendOnline = (data) => {
+      const { friendId } = data;
+      console.log("Friend online:", friendId);
+
+      setFriends((prevFriends) =>
+        prevFriends.map((f) =>
+          f._id === friendId ? { ...f, Status: "online" } : f
+        )
+      );
+
+      if (selectedFriend?._id === friendId) {
+        setSelectedFriend((prev) => ({ ...prev, Status: "online" }));
+      }
+    };
+
+    const handleFriendOffline = (data) => {
+      const { friendId } = data;
+      console.log("Friend offline:", friendId);
+
+      setFriends((prevFriends) =>
+        prevFriends.map((f) =>
+          f._id === friendId ? { ...f, Status: "offline" } : f
+        )
+      );
+
+      if (selectedFriend?._id === friendId) {
+        setSelectedFriend((prev) => ({ ...prev, Status: "offline" }));
+      }
+    };
+
+    socket.on("friendOnline", handleFriendOnline);
+    socket.on("friendOffline", handleFriendOffline);
+
+    return () => {
+      socket.off("friendOnline", handleFriendOnline);
+      socket.off("friendOffline", handleFriendOffline);
+    };
+  }, [socket, selectedFriend?._id]);
+
   return (
     <div className="friends-page">
       {/* Left Sidebar - Friends List */}
@@ -99,38 +144,49 @@ function FriendsPage({ user, socket }) {
           <h1>Messages</h1>
           <div className="search-bar">
             <i className="bi bi-search search-icon"></i>
-            <input type="text" placeholder="Search messages" />
+            <input
+              type="text"
+              placeholder="Search friends"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
 
         <div className="friends-list">
-          {friends.map((friend) => (
-            <div
-              key={friend._id}
-              className={`friend-item ${selectedFriend?._id === friend._id ? "active" : ""}`}
-              onClick={() => setSelectedFriend(friend)}
-            >
-              <div className="friend-header">
-                <img
-                  className="friend-image"
-                  src={friend.profileImage}
-                  alt=""
-                />
-                <div
-                  className={`friend-status ${friend.Status === "online" ? "online" : "offline"}`}
-                ></div>
-              </div>
-              <div className="friend-info">
-                <div className="friend-name-row">
-                  <span className="friend-name">{friend.displayName}</span>
-                  <span className="friend-time">2m</span>
+          {friends
+            .filter((friend) =>
+              friend.displayName
+                .toLowerCase()
+                .includes(searchQuery.toLowerCase()),
+            )
+            .map((friend) => (
+              <div
+                key={friend._id}
+                className={`friend-item ${selectedFriend?._id === friend._id ? "active" : ""}`}
+                onClick={() => setSelectedFriend(friend)}
+              >
+                <div className="friend-header">
+                  <img
+                    className="friend-image"
+                    src={friend.profileImage}
+                    alt=""
+                  />
+                  <div
+                    className={`friend-status ${friend.Status === "online" ? "online" : "offline"}`}
+                  ></div>
                 </div>
-                <p className="friend-last-message">
-                  Click to start chatting...
-                </p>
+                <div className="friend-info">
+                  <div className="friend-name-row">
+                    <span className="friend-name">{friend.displayName}</span>
+                    <span className="friend-time">2m</span>
+                  </div>
+                  <p className="friend-last-message">
+                    Click to start chatting...
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
 
@@ -190,6 +246,7 @@ function FriendsPage({ user, socket }) {
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Message Input */}
