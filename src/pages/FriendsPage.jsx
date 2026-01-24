@@ -167,11 +167,17 @@ function FriendsPage({ user, socket }) {
                 onClick={() => setSelectedFriend(friend)}
               >
                 <div className="friend-header">
-                  <img
-                    className="friend-image"
-                    src={friend.profileImage}
-                    alt=""
-                  />
+                  {friend.profileImage && friend.profileImage !== "letter" ? (
+                    <img
+                      className="friend-image"
+                      src={friend.profileImage}
+                      alt=""
+                    />
+                  ) : (
+                    <div className="friend-image placeholder">
+                      {friend.displayName?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                  )}
                   <div
                     className={`friend-status ${friend.Status === "online" ? "online" : "offline"}`}
                   ></div>
@@ -198,7 +204,15 @@ function FriendsPage({ user, socket }) {
             <div className="chat-header">
               <div className="chat-header-info">
                 <div className="chat-header-avatar">
-                  <img src={selectedFriend.profileImage} alt="" />
+                  {selectedFriend.profileImage &&
+                  selectedFriend.profileImage !== "letter" ? (
+                    <img src={selectedFriend.profileImage} alt="" />
+                  ) : (
+                    <div className="friend-image placeholder header-placeholder">
+                      {selectedFriend.displayName?.charAt(0).toUpperCase() ||
+                        "U"}
+                    </div>
+                  )}
                   <div
                     className={`chat-header-status ${selectedFriend.Status === "online" ? "online" : "offline"}`}
                   ></div>

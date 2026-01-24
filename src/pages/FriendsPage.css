@@ -104,6 +104,22 @@
   object-fit: cover;
 }
 
+.friend-image.placeholder {
+  background-color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 20px;
+}
+
+.header-placeholder {
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+}
+
 .friend-status {
   position: absolute;
   bottom: 2px;
