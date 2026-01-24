@@ -167,7 +167,9 @@ function FriendsPage({ user, socket }) {
                 onClick={() => setSelectedFriend(friend)}
               >
                 <div className="friend-header">
-                  {friend.profileImage && friend.profileImage !== "letter" ? (
+                  {friend.profileImage &&
+                  (friend.profileImage.startsWith("http") ||
+                    friend.profileImage.startsWith("data:")) ? (
                     <img
                       className="friend-image"
                       src={friend.profileImage}
@@ -205,7 +207,8 @@ function FriendsPage({ user, socket }) {
               <div className="chat-header-info">
                 <div className="chat-header-avatar">
                   {selectedFriend.profileImage &&
-                  selectedFriend.profileImage !== "letter" ? (
+                  (selectedFriend.profileImage.startsWith("http") ||
+                    selectedFriend.profileImage.startsWith("data:")) ? (
                     <img src={selectedFriend.profileImage} alt="" />
                   ) : (
                     <div className="friend-image placeholder header-placeholder">

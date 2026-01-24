@@ -237,7 +237,9 @@ function PostsPage({ user }) {
                   to={`/users/${post.author}/profile`}
                   className="post-avatar"
                 >
-                  {post.profileImage && post.profileImage !== "letter" ? (
+                  {post.profileImage &&
+                  (post.profileImage.startsWith("http") ||
+                    post.profileImage.startsWith("data:")) ? (
                     <img
                       src={post.profileImage}
                       alt="Avatar"
@@ -360,7 +362,12 @@ function PostsPage({ user }) {
                                 className="comment-avatar-link"
                               >
                                 {comment.author?.profileImage &&
-                                comment.author?.profileImage !== "letter" ? (
+                                (comment.author?.profileImage.startsWith(
+                                  "http",
+                                ) ||
+                                  comment.author?.profileImage.startsWith(
+                                    "data:",
+                                  )) ? (
                                   <img
                                     src={comment.author.profileImage}
                                     alt="Avatar"
