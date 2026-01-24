@@ -180,22 +180,23 @@ function AppContent() {
   }, [user?.id]); // Only re-run if user.id changes
 
   const handleLogout = () => {
+    // Explicitly tell server to mark as offline
+    if (socketRef.current && user?.id) {
+      socketRef.current.emit("userLogout", user.id);
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setLoggedIn(false);
     setUser(null);
 
-    // Disconnect socket on logout
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-    }
-
     navigate("/login");
   };
 
   return (
-    <div>
+    <div className="app">
       {LoggedIn && <Header user={user} />}
       <Routes>
         <Route

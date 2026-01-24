@@ -126,4 +126,36 @@ module.exports = (socket, io) => {
       }
     }
   });
+  // User explicitly logs out
+  socket.on("userLogout", async (userId) => {
+    console.log(`User ${userId} logging out (force offline)`);
+    
+    // Force remove connection count
+    io.userConnections.delete(userId);
+
+    // Update user status to offline
+    try {
+      await User.findByIdAndUpdate(userId, { Status: "offline" });
+      console.log(`User ${userId} marked offline (logout)`);
+    } catch (error) {
+      console.error("Error updating user status:", error);
+    }
+
+    // Emit to friends that user is offline
+    try {
+      const user = await User.findById(userId).populate("friends");
+      if (user && user.friends) {
+        user.friends.forEach((friend) => {
+          io.to(`user_${friend._id}`).emit("friendOffline", {
+            friendId: userId,
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Error emitting friend offline:", error);
+    }
+    
+    // Disconnect socket
+    socket.disconnect();
+  });
 };
