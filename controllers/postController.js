@@ -3,8 +3,10 @@ const userModel = require("../models/user");
 const PostModel = require("../models/Post");
 
 // ✅ FIXED: Create post with denormalized data
+// ✅ FIXED: Create post with denormalized data and Image Upload
 const createPost = async (req, res) => {
-  const { text } = req.body;
+  const { text, image } = req.body;
+
   try {
     // ✅ Get user info first
     const user = await userModel.findById(req.user.id);
@@ -13,22 +15,62 @@ const createPost = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    let imageUrl = "";
+
+    // ✅ Handle Image Upload if file exists
+    if (req.file) {
+      const cloudinary = require("../config/cloudinary");
+
+      // Promisify the stream upload
+      const uploadStream = () => {
+        return new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              folder: "chat-app/posts",
+            },
+            (error, result) => {
+              if (result) {
+                resolve(result);
+              } else {
+                reject(error);
+              }
+            },
+          );
+          // Convert buffer to stream
+          const bufferStream = require("stream").Readable.from(req.file.buffer);
+          bufferStream.pipe(stream);
+        });
+      };
+
+      try {
+        const result = await uploadStream();
+        imageUrl = result.secure_url;
+      } catch (uploadError) {
+        console.error("Cloudinary upload failed:", uploadError);
+        return res.status(500).json({ message: "Image upload failed" });
+      }
+    }
+
     // ✅ Create post with denormalized fields
     const post = await PostModel.create({
       text,
+      image: imageUrl, // Save image URL
       author: req.user.id,
       displayName: user.displayName,
       profileImage: user.profileImage || "letter",
     });
+
     await userModel.findByIdAndUpdate(post.author, {
       $inc: { PostsCount: 1 },
     });
+
     // ✅ Return post with all needed fields
     res.status(201).json({
       message: "Post created successfully",
       post: {
         id: post._id,
         text: post.text,
+        image: post.image,
         author: post.author,
         displayName: post.displayName,
         profileImage: post.profileImage,
@@ -65,6 +107,7 @@ const getPosts = async (req, res) => {
         return {
           id: post._id.toString(),
           text: post.text || "",
+          image: post.image, // ✅ Include image field
           author: post.author ? post.author.toString() : "",
           displayName: post.displayName || "Unknown User",
           profileImage: post.profileImage || "letter",
@@ -97,6 +140,7 @@ const getPosts = async (req, res) => {
         return {
           id: post._id ? post._id.toString() : "unknown",
           text: "Error loading post",
+          image: null,
           author: "",
           displayName: "Unknown User",
           profileImage: "letter",
@@ -184,7 +228,7 @@ const likePost = async (req, res) => {
               n.sender &&
               n.sender.toString() === userId.toString() &&
               n.post &&
-              n.post.toString() === post._id.toString()
+              n.post.toString() === post._id.toString(),
           );
 
           if (!alreadyExists) {
@@ -200,25 +244,32 @@ const likePost = async (req, res) => {
 
             await author.save();
             console.log("Notification saved to author");
-            
+
             // Emit socket event for new notification with full notification data
             if (req.io) {
               // Get the last notification (the one we just added)
-              const lastNotification = author.Notifications[author.Notifications.length - 1];
-              
-              req.io.to(`user_${post.author.toString()}`).emit("newNotification", {
-                _id: lastNotification._id,
-                type: "postLike",
-                sender: {
-                  _id: userId,
-                  displayName: await (await require("../models/user").findById(userId)).displayName,
-                  profileImage: await (await require("../models/user").findById(userId)).profileImage,
-                },
-                post: post._id,
-                createdAt: lastNotification.createdAt,
-                Read: false,
-              });
-              console.log("Emitted newNotification socket event");
+              const lastNotification =
+                author.Notifications[author.Notifications.length - 1];
+
+              const senderUser =
+                await require("../models/user").findById(userId);
+              if (senderUser) {
+                req.io
+                  .to(`user_${post.author.toString()}`)
+                  .emit("newNotification", {
+                    _id: lastNotification._id,
+                    type: "postLike",
+                    sender: {
+                      _id: userId,
+                      displayName: senderUser.displayName,
+                      profileImage: senderUser.profileImage,
+                    },
+                    post: post._id,
+                    createdAt: lastNotification.createdAt,
+                    Read: false,
+                  });
+                console.log("Emitted newNotification socket event");
+              }
             }
           } else {
             console.log("Notification already exists");
@@ -257,4 +308,46 @@ const likePost = async (req, res) => {
   }
 };
 
-module.exports = { createPost, getPosts, deletePost, likePost };
+const getPostById = async (req, res) => {
+  try {
+    const postId = req.params.postId;
+    const post = await PostModel.findById(postId).populate({
+      path: "comments",
+      populate: { path: "author", select: "displayName profileImage" },
+    });
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Transform to match frontend expectations
+    const transformedPost = {
+      id: post._id.toString(),
+      text: post.text || "",
+      image: post.image,
+      author: post.author ? post.author.toString() : "",
+      displayName: post.displayName || "Unknown User",
+      profileImage: post.profileImage || "letter",
+      likes: Array.isArray(post.likes)
+        ? post.likes.map((id) =>
+            typeof id === "object" && id._id
+              ? id._id.toString()
+              : id.toString(),
+          )
+        : [],
+      likesCount: post.likesCount || 0,
+      commentsCount: post.comments ? post.comments.length : 0,
+      comments: post.comments || [],
+      createdAt: post.createdAt || new Date(),
+    };
+
+    res.json({ post: transformedPost });
+  } catch (err) {
+    console.error("Error fetching post:", err);
+    res
+      .status(500)
+      .json({ message: "Error fetching post", error: err.message });
+  }
+};
+
+module.exports = { createPost, getPosts, deletePost, likePost, getPostById };

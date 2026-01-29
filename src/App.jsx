@@ -7,9 +7,11 @@ import ProfilePage from "./pages/ProfilePage";
 import PostsPage from "./pages/PostsPage";
 import UserPage from "./pages/UserPage";
 import FriendsPage from "./pages/FriendsPage";
+import PostPage from "./pages/PostPage";
 import { API_URL } from "./config";
 import { io } from "socket.io-client";
 import Header from "./components/Header";
+import postfunctions from "./functions/posts";
 import {
   BrowserRouter as Router,
   Routes,
@@ -19,8 +21,15 @@ import {
 } from "react-router-dom";
 
 function AppContent() {
-  const [LoggedIn, setLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);
+  const [LoggedIn, setLoggedIn] = useState(() => {
+    return !!localStorage.getItem("token");
+  });
+  const [user, setUser] = useState(() => {
+    const storedUser = localStorage.getItem("user");
+    return storedUser && storedUser !== "undefined"
+      ? JSON.parse(storedUser)
+      : null;
+  });
   const navigate = useNavigate();
 
   // ✅ FIX 1: Use useRef to create socket only once
@@ -296,6 +305,10 @@ function AppContent() {
               <Navigate to="/login" />
             )
           }
+        />
+        <Route
+          path="/posts/:postId"
+          element={<PostPage user={user} socket={socketRef.current} />}
         />
       </Routes>
     </div>

@@ -39,17 +39,28 @@ const authRoutes = require("./routes/authRoutes");
 const postRoutes = require("./routes/postRoutes");
 const userRoutes = require("./routes/userRoutes");
 const commentRoutes = require("./routes/commentRoutes");
+const chatRoutes = require("./routes/chatRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
 app.use("/", authRoutes);
 app.use("/", postRoutes);
 app.use("/", userRoutes);
 app.use("/", commentRoutes);
+app.use("/chats", chatRoutes);
+app.use("/messages", messageRoutes);
 
 // Health check endpoint
 app.get("/", (req, res) => {
   res.json({
     status: "Server is running! 🚀",
-    endpoints: ["/login", "/create-user", "/posts", "/upload-profile-pic"],
+    endpoints: [
+      "/login",
+      "/create-user",
+      "/posts",
+      "/upload-profile-pic",
+      "/chats",
+      "/messages",
+    ],
   });
 });
 
