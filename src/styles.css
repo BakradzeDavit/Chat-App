@@ -24,6 +24,10 @@
 }
 
 /* Global Styles */
+* {
+  box-sizing: border-box;
+}
+
 html,
 body,
 #root {

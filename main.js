@@ -20,8 +20,13 @@ async function createWindow() {
     "did-fail-load",
     (event, errorCode, errorDescription) => {
       console.log("Failed to load:", errorCode, errorDescription);
-    }
+    },
   );
+
+  mainWindow.on("close", () => {
+    // Notify renderer to go offline before closing
+    mainWindow.webContents.send("app-closing");
+  });
 
   mainWindow.on("closed", () => {
     mainWindow = null;

@@ -20,6 +20,7 @@ const {
   removeFriend,
   getUsers,
   deleteNotification,
+  declineFriendRequest,
 } = require("../controllers/userController");
 
 const router = express.Router();
@@ -78,6 +79,13 @@ router.post(
   authenticateToken,
   validate(userIdParamSchema),
   cancelFriendRequest,
+);
+
+router.post(
+  "/users/:id/decline-friend-request",
+  authenticateToken,
+  validate(userIdParamSchema),
+  declineFriendRequest,
 );
 
 router.get(

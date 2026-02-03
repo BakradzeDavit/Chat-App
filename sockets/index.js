@@ -1,6 +1,7 @@
 const chatSocket = require("./chat.socket");
 const notifSocket = require("./notif.socket");
 const userSocket = require("./user.socket");
+const messageSocket = require("./message.socket");
 const User = require("../models/user");
 
 module.exports = (io) => {
@@ -21,6 +22,7 @@ module.exports = (io) => {
     chatSocket(socket, io);
     notifSocket(socket, io);
     userSocket(socket, io);
+    messageSocket(socket, io);
 
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);

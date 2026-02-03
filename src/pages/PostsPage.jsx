@@ -8,7 +8,7 @@ import LikePost from "../components/LikePost";
 import postsfunctions from "../functions/posts";
 import "./PostsPage.css";
 
-function PostsPage({ user }) {
+function PostsPage({ user, setAlertMessage }) {
   const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState("text"); // 'text' or 'media'
   const [newPost, setNewPost] = useState("");
@@ -27,7 +27,7 @@ function PostsPage({ user }) {
   };
 
   const handleDeletePost = (postId) => {
-    postsfunctions.handleDeletePost(postId, posts, setPosts);
+    postsfunctions.handleDeletePost(postId, posts, setPosts, setAlertMessage);
   };
 
   const isMyPost = (post) => {
@@ -69,15 +69,7 @@ function PostsPage({ user }) {
   };
 
   const ShareFunction = (postId) => {
-    const url = `${window.location.origin}/posts/${postId}`;
-    navigator.clipboard
-      .writeText(url)
-      .then(() => {
-        alert("Post URL copied to clipboard!");
-      })
-      .catch((err) => {
-        console.error("Failed to copy: ", err);
-      });
+    postsfunctions.ShareFunction(postId, setAlertMessage);
   };
 
   useEffect(() => {
@@ -236,6 +228,13 @@ function PostsPage({ user }) {
                             >
                               <i className="bi bi-eye"></i> View Post
                             </div>
+
+                            {isMyPost(post) && (
+                              <DeletePost
+                                post={post}
+                                onDelete={handleDeletePost}
+                              />
+                            )}
                           </div>
                         )}
                       </div>
@@ -283,14 +282,6 @@ function PostsPage({ user }) {
                               onClick={() => ShareFunction(post.id)}
                             ></i>
                           </div>
-                        </div>
-                        <div className="media-right-actions">
-                          {isMyPost(post) && (
-                            <DeletePost
-                              post={post}
-                              onDelete={handleDeletePost}
-                            />
-                          )}
                         </div>
                       </div>
 
@@ -423,6 +414,12 @@ function PostsPage({ user }) {
                               >
                                 <i className="bi bi-eye"></i> View Post
                               </div>
+                              {isMyPost(post) && (
+                                <DeletePost
+                                  post={post}
+                                  onDelete={handleDeletePost}
+                                />
+                              )}
                             </div>
                           )}
                         </div>
@@ -456,9 +453,6 @@ function PostsPage({ user }) {
                         >
                           <i className="bi bi-send"></i>
                         </div>
-                        {isMyPost(post) && (
-                          <DeletePost post={post} onDelete={handleDeletePost} />
-                        )}
                       </div>
 
                       {/* Comments Section */}

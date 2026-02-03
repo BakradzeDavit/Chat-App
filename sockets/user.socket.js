@@ -22,7 +22,7 @@ module.exports = (socket, io) => {
 
     if (prevCount === 0) {
       // Emit to friends that user is online (only if they were offline before)
-      // Actually, we should probably emit this always too? 
+      // Actually, we should probably emit this always too?
       // If we emit always, friends get "online" event multiple times.
       // Front-end handles it (idempotent state update).
       // But let's stick to only emitting if new connection, OR just emit safely.
@@ -30,14 +30,16 @@ module.exports = (socket, io) => {
       try {
         const user = await User.findById(userId).populate("friends");
         user.friends.forEach((friend) => {
-          io.to(`user_${friend._id}`).emit("friendOnline", { friendId: userId });
+          io.to(`user_${friend._id}`).emit("friendOnline", {
+            friendId: userId,
+          });
         });
       } catch (error) {
         console.error("Error emitting friend online:", error);
       }
     } else {
-      // Even if prevCount > 0, we might want to emit to be safe? 
-      // Let's keep emission inside prevCount === 0 for noise reduction, 
+      // Even if prevCount > 0, we might want to emit to be safe?
+      // Let's keep emission inside prevCount === 0 for noise reduction,
       // but the DB update is the critical "100%" fix.
       // Wait, if server restarted, prevCount is 0 for everyone reconnecting.
       // So logic holds.
@@ -137,10 +139,41 @@ module.exports = (socket, io) => {
       }
     }
   });
+
+  // User goes offline (e.g., on page close)
+  socket.on("userOffline", async (userId) => {
+    console.log(`User ${userId} going offline (client initiated)`);
+
+    // Force remove connection count
+    io.userConnections.delete(userId);
+
+    // Update user status to offline
+    try {
+      await User.findByIdAndUpdate(userId, { Status: "offline" });
+      console.log(`User ${userId} marked offline (client offline)`);
+    } catch (error) {
+      console.error("Error updating user status:", error);
+    }
+
+    // Emit to friends that user is offline
+    try {
+      const user = await User.findById(userId).populate("friends");
+      if (user && user.friends) {
+        user.friends.forEach((friend) => {
+          io.to(`user_${friend._id}`).emit("friendOffline", {
+            friendId: userId,
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Error emitting friend offline:", error);
+    }
+  });
+
   // User explicitly logs out
   socket.on("userLogout", async (userId) => {
     console.log(`User ${userId} logging out (force offline)`);
-    
+
     // Force remove connection count
     io.userConnections.delete(userId);
 
@@ -165,7 +198,7 @@ module.exports = (socket, io) => {
     } catch (error) {
       console.error("Error emitting friend offline:", error);
     }
-    
+
     // Disconnect socket
     socket.disconnect();
   });

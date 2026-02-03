@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const userModel = require("../models/user");
 const PostModel = require("../models/Post");
+const chatModel = require("../models/Chat");
 const cloudinary = require("../config/cloudinary");
 
 // ✅ Update username
@@ -85,7 +86,7 @@ const getUserProfile = async (req, res) => {
     const user = await userModel
       .findById(id)
       .select(
-        "displayName email profileImage backgroundImage PostsCount friends Notifications",
+        "displayName email profileImage backgroundImage PostsCount friends Notifications friendRequestsReceived friendRequestsSent",
       )
       .populate("Notifications.sender", "displayName profileImage");
     if (!user) {
@@ -117,6 +118,8 @@ const getUserProfile = async (req, res) => {
         hasSentRequest,
         hasReceivedRequest,
         Notifications: user.Notifications,
+        friendRequestsReceived: user.friendRequestsReceived,
+        friendRequestsSent: user.friendRequestsSent,
       },
     });
   } catch (err) {
@@ -311,6 +314,7 @@ const acceptFriendRequest = async (req, res) => {
     }
 
     // Add to friends
+
     receiver.friends.push(senderId);
     sender.friends.push(receiverId);
 
@@ -330,6 +334,20 @@ const acceptFriendRequest = async (req, res) => {
           n.sender.toString() === sender._id.toString()
         ),
     );
+
+    // Create Chat between the two users
+    let chat = await chatModel.findOne({
+      isGroup: false,
+      participants: { $all: [receiverId, senderId], $size: 2 },
+    });
+
+    if (!chat) {
+      chat = await chatModel.create({
+        participants: [receiverId, senderId],
+        lastMessage: null,
+        isGroup: false,
+      });
+    }
 
     await receiver.save();
     await sender.save();
@@ -421,6 +439,54 @@ const getFriendRequestsReceived = async (req, res) => {
   }
 };
 
+const declineFriendRequest = async (req, res) => {
+  try {
+    const { id: senderId } = req.params;
+    const receiverId = req.user.id;
+
+    if (!mongoose.Types.ObjectId.isValid(senderId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const receiver = await userModel.findById(receiverId);
+    const sender = await userModel.findById(senderId);
+
+    if (!sender) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Remove from receiver's friendRequestsReceived
+    receiver.friendRequestsReceived = receiver.friendRequestsReceived.filter(
+      (id) => id.toString() !== senderId,
+    );
+
+    // Remove from sender's friendRequestsSent
+    sender.friendRequestsSent = sender.friendRequestsSent.filter(
+      (id) => id.toString() !== receiverId,
+    );
+
+    // Remove notification from receiver
+    receiver.Notifications = receiver.Notifications.filter(
+      (n) =>
+        !(
+          n.type === "friendRequest" &&
+          n.sender.toString() === sender._id.toString()
+        ),
+    );
+
+    await receiver.save();
+    await sender.save();
+
+    res.json({ message: "Friend request declined successfully" });
+  } catch (err) {
+    console.error("Error declining friend request:", err);
+    res.status(500).json({
+      message: "Error declining friend request",
+      error: err.message,
+    });
+  }
+};
+
 const getFriendRequestsSent = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -459,6 +525,12 @@ const removeFriend = async (req, res) => {
 
     await user.save();
     await friend.save();
+
+    // Delete chat between the two users
+    await chatModel.findOneAndDelete({
+      isGroup: false,
+      participants: { $all: [userId, friendId], $size: 2 },
+    });
 
     // Emit socket events for real-time updates
     if (req.io) {
@@ -528,4 +600,5 @@ module.exports = {
   removeFriend,
   getUsers,
   deleteNotification,
+  declineFriendRequest,
 };

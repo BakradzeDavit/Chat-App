@@ -1,0 +1,38 @@
+.alert {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+
+  transform: translateX(-50%) translateY(40px);
+  opacity: 0;
+  letter-spacing: 1.5px;
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  padding: 12px 24px;
+  border-radius: 8px;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  font-size: 14px;
+  max-width: 80%;
+  word-wrap: break-word;
+  gap: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
+}
+
+/* visible state */
+.alert-show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* closing state */
+.alert-hide {
+  transform: translateX(-50%) translateY(40px);
+  opacity: 0;
+}

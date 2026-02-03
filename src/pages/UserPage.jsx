@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { API_URL } from "../config";
 import LikePost from "../components/LikePost";
+import * as functions from "../functions/Friends";
 import "./UserPage.css";
 function UserPage({ currentUser }) {
   const { id } = useParams();
@@ -135,119 +136,42 @@ function UserPage({ currentUser }) {
       fetchUserPosts();
     }
   }, [activeTab, id, userData]);
-  const handleFriendRequest = async () => {
-    try {
-      const response = await fetch(
-        `${API_URL}/users/${id}/send-friend-request`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        },
-      );
 
-      if (response.ok) {
-        alert("Friend request sent successfully!");
-        setFriendStatus("sent");
-      } else {
-        try {
-          const responseText = await response.text();
-          try {
-            const errorData = JSON.parse(responseText);
-            alert(`Failed to send friend request: ${errorData.message}`);
-          } catch (jsonParseError) {
-            alert(
-              `Failed to send friend request: Server returned non-JSON response (status ${response.status}): ${responseText}`,
-            );
-          }
-        } catch (textError) {
-          alert(
-            `Failed to send friend request: Unable to read server response (status ${response.status})`,
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error sending friend request:", error);
-      alert("An error occurred while sending the friend request.");
-    }
-  };
-  const handleAcceptRequest = async () => {
-    try {
-      const response = await fetch(
-        `${API_URL}/users/${id}/accept-friend-request`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        },
-      );
 
-      if (response.ok) {
-        alert("Friend request accepted!");
-        setFriendStatus("friends");
-      } else {
-        try {
-          const responseText = await response.text();
-          try {
-            const errorData = JSON.parse(responseText);
-            alert(`Failed to accept friend request: ${errorData.message}`);
-          } catch (jsonParseError) {
-            alert(
-              `Failed to accept friend request: Server returned non-JSON response (status ${response.status}): ${responseText}`,
-            );
-          }
-        } catch (textError) {
-          alert(
-            `Failed to accept friend request: Unable to read server response (status ${response.status})`,
-          );
-        }
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showDropdown && !event.target.closest(".user-actions-dropdown-container")) {
+        setShowDropdown(false);
       }
-    } catch (error) {
-      console.error("Error accepting friend request:", error);
-      alert("An error occurred while accepting the friend request.");
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showDropdown]);
+
+  const handleRemoveFriend = async () => {
+    if (window.confirm(`Are you sure you want to remove ${userData.displayName} from your friends?`)) {
+      const result = await functions.handleRemoveFriend(id, setFriendStatus);
+      if (result.success) {
+        setShowDropdown(false);
+      }
     }
   };
 
-  const handleDeclineRequest = async () => {
-    try {
-      const response = await fetch(
-        `${API_URL}/users/${id}/cancel-friend-request`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        },
-      );
-
-      if (response.ok) {
-        alert("Friend request canceled!");
-        setFriendStatus("none");
-      } else {
-        try {
-          const responseText = await response.text();
-          try {
-            const errorData = JSON.parse(responseText);
-            alert(`Failed to cancel friend request: ${errorData.message}`);
-          } catch (jsonParseError) {
-            alert(
-              `Failed to cancel friend request: Server returned non-JSON response (status ${response.status}): ${responseText}`,
-            );
-          }
-        } catch (textError) {
-          alert(
-            `Failed to cancel friend request: Unable to read server response (status ${response.status})`,
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error canceling friend request:", error);
-      alert("An error occurred while canceling the friend request.");
-    }
+  const handleFriendRequest = () => {
+    functions.handleFriendRequest(id, setFriendStatus);
   };
-
+  const handleAcceptRequest = () => {
+    functions.handleAcceptRequest(id, setFriendStatus);
+  };
+  const handleDeclineRequest = () => {
+    functions.handleDeclineRequest(id, setFriendStatus);
+  };
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!userData) return <div>User not found</div>;
@@ -278,9 +202,38 @@ function UserPage({ currentUser }) {
 
             {/* Action Buttons */}
             <div className="user-actions">
-              <button className="user-action-btn">
-                <i className="bi bi-three-dots"></i>
-              </button>
+              <div className="user-actions-dropdown-container" style={{ position: 'relative' }}>
+                <button 
+                  className="user-action-btn"
+                  onClick={() => setShowDropdown(!showDropdown)}
+                >
+                  <i className="bi bi-three-dots"></i>
+                </button>
+                {showDropdown && (
+                  <div className="user-actions-dropdown">
+                    {friendStatus === "friends" && (
+                      <button 
+                        className="user-actions-dropdown-item danger"
+                        onClick={handleRemoveFriend}
+                      >
+                        <i className="bi bi-person-x"></i>
+                        <span>Remove Friend</span>
+                      </button>
+                    )}
+                    {/* Add more options here if needed, generic Report button example */}
+                     <button 
+                        className="user-actions-dropdown-item"
+                        onClick={() => {
+                          alert("Report feature coming soon!");
+                          setShowDropdown(false);
+                        }}
+                      >
+                        <i className="bi bi-flag"></i>
+                        <span>Report User</span>
+                      </button>
+                  </div>
+                )}
+              </div>
               {id === currentUser.id ? (
                 <button
                   className="user-follow-btn"

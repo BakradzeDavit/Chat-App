@@ -7,7 +7,7 @@ import LikePost from "../components/LikePost";
 import postsfunctions from "../functions/posts";
 import "./PostPage.css";
 
-function PostPage({ user }) {
+function PostPage({ user, setAlertMessage }) {
   const { postId } = useParams();
   const [post, setPost] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,8 +56,12 @@ function PostPage({ user }) {
     await postsfunctions.handleLikeSingle(postId, user, setPost);
   };
 
-  const handleDeletePost = () => {
-    navigate("/posts");
+  const handleDeletePost = (postId) => {
+    postsfunctions.handleDeletePost(postId, posts, setPosts, setAlertMessage);
+  };
+
+  const ShareFunction = (postId) => {
+    postsfunctions.ShareFunction(postId, setAlertMessage);
   };
 
   if (isLoading) {
@@ -67,9 +71,7 @@ function PostPage({ user }) {
   if (!post) {
     return <div className="post-page">Post not found</div>;
   }
-
   const isMyPost = post.author === user.id;
-
   const hasImage = !!post.image;
 
   return (
@@ -270,7 +272,12 @@ function PostPage({ user }) {
                     }}
                   >
                     <i className="bi bi-chat"></i>
+
                     <span>{post.comments ? post.comments.length : 0}</span>
+                  </div>
+
+                  <div className="Share" onClick={() => ShareFunction(post.id)}>
+                    <i className="bi bi-send"></i>
                   </div>
                 </div>
 

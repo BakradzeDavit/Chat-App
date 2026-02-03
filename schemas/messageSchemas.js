@@ -1,11 +1,16 @@
 const { z } = require("zod");
 
-// ✅ Helper to validate MongoDB ObjectIDs
 const objectIdSchema = z
   .string()
   .regex(/^[0-9a-fA-F]{24}$/, "Invalid ID format");
 
-// ✅ Create message schema
+const attachmentSchema = z.object({
+  url: z.string().url(),
+  name: z.string().optional(),
+  size: z.number().optional(),
+  mimeType: z.string().optional(),
+});
+
 const createMessageSchema = z.object({
   body: z.object({
     chatId: objectIdSchema,
@@ -18,17 +23,17 @@ const createMessageSchema = z.object({
       .enum(["text", "image", "file", "voice"])
       .optional()
       .default("text"),
+    attachments: z.array(attachmentSchema).optional(),
+    replyTo: objectIdSchema.optional(),
   }),
 });
 
-// ✅ Message ID parameter schema (for delete, update, etc.)
 const messageIdParamSchema = z.object({
   params: z.object({
     id: objectIdSchema,
   }),
 });
 
-// ✅ Chat ID parameter schema (for fetching messages by chat)
 const chatIdParamSchema = z.object({
   params: z.object({
     chatId: objectIdSchema,

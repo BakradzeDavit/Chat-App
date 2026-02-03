@@ -4,13 +4,15 @@ import Login from "./components/Login";
 import SignUp from "./components/SignUp";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
+import FriendsPage from "./pages/FriendsPage";
 import PostsPage from "./pages/PostsPage";
 import UserPage from "./pages/UserPage";
-import FriendsPage from "./pages/FriendsPage";
+import ChatsPage from "./pages/ChatsPage";
 import PostPage from "./pages/PostPage";
 import { API_URL } from "./config";
 import { io } from "socket.io-client";
 import Header from "./components/Header";
+import Alertcomp from "./components/alert";
 import postfunctions from "./functions/posts";
 import {
   BrowserRouter as Router,
@@ -19,8 +21,10 @@ import {
   Navigate,
   useNavigate,
 } from "react-router-dom";
+import { Alert } from "bootstrap";
 
 function AppContent() {
+  const [alertMessage, setAlertMessage] = useState("");
   const [LoggedIn, setLoggedIn] = useState(() => {
     return !!localStorage.getItem("token");
   });
@@ -48,12 +52,7 @@ function AppContent() {
 
       socketRef.current.on("connect", () => {
         console.log("Socket connected:", socketRef.current.id);
-        // Re-emit user online event if we have a user
-        // We need to access the current user state, but inside this closure 'user' might be stale if not careful.
-        // However, we can use the window.user (dirty) or we can just rely on the effect below to handle INITIAL connection.
-        // But for RECONNECTION, we need this.
-        // Since we can't easily access 'user' state here without adding it to dependency (which restarts socket),
-        // we can check localStorage or use a ref for user ID.
+      
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
           try {
@@ -190,11 +189,39 @@ function AppContent() {
       // TODO: Update friend status in UI
     };
 
+    // Listen for new notifications (including friend requests)
+    const handleNewNotification = async (notification) => {
+      console.log("App: New notification received:", notification);
+      
+      // If it's a friend request, refresh the user data
+      if (notification.type === "friendRequest") {
+        try {
+          const response = await fetch(`${API_URL}/users/${user.id}/profile`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setUser((prevUser) => {
+              const updatedUser = { ...prevUser, ...data.user };
+              localStorage.setItem("user", JSON.stringify(updatedUser));
+              return updatedUser;
+            });
+          }
+        } catch (error) {
+          console.error("Error refreshing user data:", error);
+        }
+      }
+    };
+
     // Register listeners
     socket.on("friendRemoved", handleFriendRemoved);
     socket.on("friendAdded", handleFriendAdded);
     socket.on("friendOnline", handleFriendOnline);
     socket.on("friendOffline", handleFriendOffline);
+    socket.on("newNotification", handleNewNotification);
     console.log("App: Registered global friend event listeners");
 
     return () => {
@@ -202,6 +229,7 @@ function AppContent() {
       socket.off("friendAdded", handleFriendAdded);
       socket.off("friendOnline", handleFriendOnline);
       socket.off("friendOffline", handleFriendOffline);
+      socket.off("newNotification", handleNewNotification);
       console.log("App: Cleaned up global socket listeners");
     };
   }, [user?.id]); // Only re-run if user.id changes
@@ -225,6 +253,9 @@ function AppContent() {
   return (
     <div className="app">
       {LoggedIn && <Header user={user} />}
+      {alertMessage && (
+        <Alertcomp message={alertMessage} setAlertMessage={setAlertMessage} />
+      )}
       <Routes>
         <Route
           path="/"
@@ -238,7 +269,11 @@ function AppContent() {
             LoggedIn ? (
               <Navigate to="/home" />
             ) : (
-              <Login setLoggedIn={setLoggedIn} setUser={setUser} />
+              <Login
+                setLoggedIn={setLoggedIn}
+                setUser={setUser}
+                setAlertMessage={setAlertMessage}
+              />
             )
           }
         />
@@ -270,6 +305,7 @@ function AppContent() {
                 user={user}
                 setUser={setUser}
                 handleLogout={handleLogout}
+                setAlertMessage={setAlertMessage}
               />
             ) : (
               <Navigate to="/login" />
@@ -280,7 +316,11 @@ function AppContent() {
           path="/posts"
           element={
             LoggedIn && user ? (
-              <PostsPage user={user} socket={socketRef.current} />
+              <PostsPage
+                user={user}
+                socket={socketRef.current}
+                setAlertMessage={setAlertMessage}
+              />
             ) : (
               <Navigate to="/login" />
             )
@@ -297,10 +337,10 @@ function AppContent() {
           }
         />
         <Route
-          path="/friends"
+          path="/chats"
           element={
             LoggedIn && user ? (
-              <FriendsPage user={user} socket={socketRef.current} />
+              <ChatsPage user={user} socket={socketRef.current} />
             ) : (
               <Navigate to="/login" />
             )
@@ -308,8 +348,26 @@ function AppContent() {
         />
         <Route
           path="/posts/:postId"
-          element={<PostPage user={user} socket={socketRef.current} />}
+          element={
+            <PostPage
+              user={user}
+              socket={socketRef.current}
+              setAlertMessage={setAlertMessage}
+            />
+          }
         />
+
+        <Route
+          path="/friends"
+          element={
+            LoggedIn && user ? (
+              <FriendsPage user={user} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </div>
   );

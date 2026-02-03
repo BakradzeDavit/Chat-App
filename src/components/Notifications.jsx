@@ -166,7 +166,13 @@ function Notifications({ user }) {
                 </p>
               )}
               <i
-                className={`bi ${notification.type === "friendRequest" ? "bi-person-plus" : "bi-hand-thumbs-up"} notification-icon`}
+                className={`bi ${
+                  notification.type === "friendRequest"
+                    ? "bi-person-plus"
+                    : notification.type === "follow"
+                      ? "bi-person-plus-fill"
+                      : "bi-hand-thumbs-up"
+                } notification-icon`}
               ></i>
             </div>
           ))

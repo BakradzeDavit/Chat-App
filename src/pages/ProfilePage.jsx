@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { API_URL } from "../config";
 import "./ProfilePage.css";
-function ProfilePage({ handleLogout, user, setUser }) {
+function ProfilePage({ handleLogout, user, setUser, setAlertMessage }) {
   const [username, setUsername] = useState(user?.displayName || "");
   const [changeusername, setChangeUsername] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -65,6 +65,7 @@ function ProfilePage({ handleLogout, user, setUser }) {
             const updatedUser = await response.json();
             setUser(updatedUser.user);
             localStorage.setItem("user", JSON.stringify(updatedUser.user));
+            setAlertMessage("✅ Username updated successfully!");
           } else {
             alert("❌ Failed to update username.");
           }

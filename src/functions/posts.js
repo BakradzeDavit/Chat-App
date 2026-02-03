@@ -5,8 +5,9 @@ const postsfunctions = {
     return post.author === user.id;
   },
 
-  handleDeletePost: (postId, posts, setPosts) => {
+  handleDeletePost: (postId, posts, setPosts, setAlertMessage) => {
     setPosts(posts.filter((post) => post.id !== postId));
+    setAlertMessage("✅ Post deleted successfully!");
   },
 
   handleLike: async (postId, user, posts, setPosts) => {
@@ -313,6 +314,17 @@ const postsfunctions = {
     } catch (error) {
       console.error("Error adding comment:", error);
     }
+  },
+  ShareFunction: (postId, setAlertMessage) => {
+    const url = `${window.location.origin}/posts/${postId}`;
+    navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        setAlertMessage("✅ Post URL copied to clipboard!");
+      })
+      .catch((err) => {
+        console.error("Failed to copy: ", err);
+      });
   },
 };
 

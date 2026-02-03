@@ -1,294 +1,316 @@
-import React from "react";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { API_URL } from "../config";
 import "./FriendsPage.css";
+import {
+  handleAcceptRequest,
+  handleRejectRequest,
+} from "../functions/Friends";
+import { createOrGetChat } from "../functions/Chat";
 
-function FriendsPage({ user, socket }) {
-  const [friends, setFriends] = useState([]);
-  const [selectedFriend, setSelectedFriend] = useState(null);
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const messagesEndRef = useRef(null);
+function FriendsPage({ user }) {
+  const [users, setUsers] = useState([]);
+  const [FriendRequests, setFriendRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("myfriends"); // 'myfriends', 'online', 'all', 'requests'
 
-  const handleRemoveFriend = async (friendId) => {
-    try {
-      const response = await fetch(
-        `${API_URL}/users/${friendId}/remove-friend`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        },
-      );
-
-      if (response.ok) {
-        setFriends(friends.filter((friend) => friend._id !== friendId));
-        // Update localStorage
-        const currentUser = JSON.parse(localStorage.getItem("user"));
-        currentUser.friends = currentUser.friends.filter(
-          (id) => id !== friendId,
-        );
-        localStorage.setItem("user", JSON.stringify(currentUser));
-
-        // Clear selected friend if it was removed
-        if (selectedFriend?._id === friendId) {
-          setSelectedFriend(null);
-        }
-      } else {
-        alert("Failed to remove friend");
-      }
-    } catch (error) {
-      console.error("Error removing friend:", error);
-    }
-  };
-
-  const handleSendMessage = () => {
-    if (message.trim() && selectedFriend) {
-      const newMessage = {
-        id: Date.now(),
-        text: message,
-        sender: "me",
-        time: new Date().toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-        }),
-      };
-
-      setMessages([...messages, newMessage]);
-      setMessage("");
-
-      // TODO: Send message via socket
-      // socket.emit('send_message', { to: selectedFriend._id, text: message });
-    }
-  };
-
-  // Fetch friends list when user.friends changes
+  const navigate = useNavigate();
+  console.log(user);
+  
   useEffect(() => {
-    const fetchUsers = async () => {
-      if (!user) return;
-      try {
-        const res = await fetch(`${API_URL}/users`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch users");
-        }
-
-        const data = await res.json();
-        const friendsOnly = data.filter(
-          (friend) => user.friends && user.friends.includes(friend._id),
-        );
-
-        setFriends(friendsOnly);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
     fetchUsers();
-  }, [user?.id, user?.friends?.length]);
+  }, []);
 
-  // ✅ Socket listener for online/offline status
+  // Populate friend requests when users are loaded
   useEffect(() => {
-    if (!socket) return;
+    if (user?.friendRequestsReceived && users.length > 0) {
+      const requests = user.friendRequestsReceived
+        .map((requestId) => users.find((u) => u._id === requestId))
+        .filter((req) => req !== undefined);
+      setFriendRequests(requests);
+    }
+  }, [user?.friendRequestsReceived, users]);
 
-    const handleFriendOnline = (data) => {
-      const { friendId } = data;
-      console.log("Friend online:", friendId);
+  // Socket listener for real-time friend updates
+  useEffect(() => {
+    if (!user || !user.id) return;
 
-      setFriends((prevFriends) =>
-        prevFriends.map((f) =>
-          f._id === friendId ? { ...f, Status: "online" } : f
-        )
-      );
+    const socketInstance = window.socketRef?.current;
+    if (!socketInstance) return;
 
-      if (selectedFriend?._id === friendId) {
-        setSelectedFriend((prev) => ({ ...prev, Status: "online" }));
-      }
+    const handleFriendAdded = (data) => {
+      console.log("Friend added:", data);
+      fetchUsers();
     };
 
-    const handleFriendOffline = (data) => {
-      const { friendId } = data;
-      console.log("Friend offline:", friendId);
-
-      setFriends((prevFriends) =>
-        prevFriends.map((f) =>
-          f._id === friendId ? { ...f, Status: "offline" } : f
-        )
-      );
-
-      if (selectedFriend?._id === friendId) {
-        setSelectedFriend((prev) => ({ ...prev, Status: "offline" }));
-      }
+    const handleFriendRemoved = (data) => {
+      console.log("Friend removed:", data);
+      fetchUsers();
     };
 
-    socket.on("friendOnline", handleFriendOnline);
-    socket.on("friendOffline", handleFriendOffline);
+    socketInstance.on("friendAdded", handleFriendAdded);
+    socketInstance.on("friendRemoved", handleFriendRemoved);
 
     return () => {
-      socket.off("friendOnline", handleFriendOnline);
-      socket.off("friendOffline", handleFriendOffline);
+      socketInstance.off("friendAdded", handleFriendAdded);
+      socketInstance.off("friendRemoved", handleFriendRemoved);
     };
-  }, [socket, selectedFriend?._id]);
 
-  return (
-    <div className="friends-page">
-      {/* Left Sidebar - Friends List */}
-      <div className="friends-sidebar">
-        <div className="sidebar-header">
-          <h1>Messages</h1>
-          <div className="search-bar">
-            <i className="bi bi-search search-icon"></i>
-            <input
-              type="text"
-              placeholder="Search friends"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+  }, [user]);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/users`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const friends = data.filter((u) => u._id !== user._id);
+        setUsers(friends);
+      } else {
+        console.error("Failed to fetch users");
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMessage = async (userId) => {
+    try {
+      const result = await createOrGetChat(userId);
+      if (result.success) {
+        const friend = users.find((u) => u._id === userId);
+        navigate("/chats", {
+          state: { selectedFriend: friend, chat: result.chat },
+        });
+      } else {
+        alert("Failed to create or get chat");
+      }
+    } catch (error) {
+      console.error("Error creating/getting chat:", error);
+    }
+  };
+
+  const handleViewProfile = (userId) => {
+    navigate(`/users/${userId}/profile`);
+  };
+
+  const handleAcceptFriendRequest = async (id) => {
+    const result = await handleAcceptRequest(id);
+    if (result.success) {
+      setFriendRequests((prev) => prev.filter((req) => req._id !== id));
+      // Optionally refresh users to show new friend in list immediately if needed
+      fetchUsers();
+    }
+  };
+
+  const handleRejectFriendRequest = async (id) => {
+    const result = await handleRejectRequest(id);
+    if (result.success) {
+      setFriendRequests((prev) => prev.filter((req) => req._id !== id));
+    }
+  };
+
+  const getFilteredUsers = () => {
+    if (!user || !user.friends) return [];
+
+    if (activeTab === "myfriends") {
+      return users.filter((u) => user.friends.includes(u._id));
+    } else if (activeTab === "online") {
+      return users.filter((u) => user.friends.includes(u._id) && u.Status === "online");
+    } else if (activeTab === "all") {
+      // Return users who are NOT friends (to find new people)
+      return users.filter((u) => !user.friends.includes(u._id));
+    } else if (activeTab === "requests") {
+      return [];
+    }
+    return users;
+  };
+
+  const filteredUsers = getFilteredUsers();
+
+  
+
+  if (loading) {
+    return (
+      <div className="friends-page">
+        <div className="friends-container">
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Loading...</p>
           </div>
         </div>
-
-        <div className="friends-list">
-          {friends
-            .filter((friend) =>
-              friend.displayName
-                .toLowerCase()
-                .includes(searchQuery.toLowerCase()),
-            )
-            .map((friend) => (
-              <div
-                key={friend._id}
-                className={`friend-item ${selectedFriend?._id === friend._id ? "active" : ""}`}
-                onClick={() => setSelectedFriend(friend)}
-              >
-                <div className="friend-header">
-                  {friend.profileImage &&
-                  (friend.profileImage.startsWith("http") ||
-                    friend.profileImage.startsWith("data:")) ? (
-                    <img
-                      className="friend-image"
-                      src={friend.profileImage}
-                      alt=""
-                    />
-                  ) : (
-                    <div className="friend-image placeholder">
-                      {friend.displayName?.charAt(0).toUpperCase() || "U"}
-                    </div>
-                  )}
-                  <div
-                    className={`friend-status ${friend.Status === "online" ? "online" : "offline"}`}
-                  ></div>
-                </div>
-                <div className="friend-info">
-                  <div className="friend-name-row">
-                    <span className="friend-name">{friend.displayName}</span>
-                    <span className="friend-time">2m</span>
-                  </div>
-                  <p className="friend-last-message">
-                    Click to start chatting...
-                  </p>
-                </div>
-              </div>
-            ))}
-        </div>
       </div>
+    );
+  }
 
-      {/* Right Side - Chat Area */}
-      <div className="chat-area">
-        {selectedFriend ? (
-          <>
-            {/* Chat Header */}
-            <div className="chat-header">
-              <div className="chat-header-info">
-                <div className="chat-header-avatar">
-                  {selectedFriend.profileImage &&
-                  (selectedFriend.profileImage.startsWith("http") ||
-                    selectedFriend.profileImage.startsWith("data:")) ? (
-                    <img src={selectedFriend.profileImage} alt="" />
-                  ) : (
-                    <div className="friend-image placeholder header-placeholder">
-                      {selectedFriend.displayName?.charAt(0).toUpperCase() ||
-                        "U"}
+  return (  
+    <div className="friends-page">
+      <div className="friends-container">
+        <div className="friends-header">
+          <h1>Friends</h1>
+          <p>Connect with people around you</p>
+        </div>
+
+        <div className="friends-tabs">
+          <button
+            className={`friends-tab-btn ${activeTab === "myfriends" ? "active" : ""}`}
+            onClick={() => setActiveTab("myfriends")}
+          >
+            <i className="bi bi-people-fill"></i>
+            <span>My Friends</span>
+          </button>
+          <button
+            className={`friends-tab-btn ${activeTab === "online" ? "active" : ""}`}
+            onClick={() => setActiveTab("online")}
+          >
+            <i className="bi bi-person-check"></i>
+            <span>Online</span>
+          </button>
+           <button
+            className={`friends-tab-btn ${activeTab === "all" ? "active" : ""}`}
+            onClick={() => setActiveTab("all")}
+          >
+            <i className="bi bi-search"></i>
+            <span>Find People</span>
+          </button>
+          <button
+            className={`friends-tab-btn ${activeTab === "requests" ? "active" : ""}`}
+            onClick={() => setActiveTab("requests")}
+          >
+            <i className="bi bi-person-plus"></i>
+            <span>Requests</span>
+          </button>
+        </div>
+
+        {activeTab === "requests" ? (
+          <div className="friend-requests-section">
+            <div className="empty-state">
+            
+              {
+                FriendRequests?.length > 0 ? (
+                  FriendRequests.map((request) => (
+                   
+                    <div key={request} className="friend-request">
+                      <div
+                        className="friend-avatar"
+                        onClick={() => handleViewProfile(request._id)}
+                      >
+                        {request.profileImage &&
+                        request.profileImage !== "letter" ? (
+                          <img src={request.profileImage} alt="Avatar" />
+                        ) : (
+                          <span>
+                            {request.displayName?.charAt(0).toUpperCase() || "U"}
+                          </span>
+                        )}
+                      </div>
+                      <div className="friend-request-info">
+                        <h3
+                          className="friend-name"
+                          onClick={() => handleViewProfile(request._id)}
+                        >
+                          {request.displayName || "Unknown User"}
+                        </h3>
+                        <p className="friend-status">
+                          <i
+                            className={`bi bi-circle-fill ${request.Status === "online" ? "status-online" : "status-offline"}`}
+                          ></i>
+                          {request.Status === "online" ? "Online" : "Offline"}
+                        </p>
+                      </div>
+                      <div className="friend-request-actions">
+                        <button
+                          className="accept-btn"
+                          onClick={() => handleAcceptFriendRequest(request._id)}
+                        >
+                          Accept
+                        </button>
+                        <button
+                          className="reject-btn"
+                          onClick={() => handleRejectFriendRequest(request._id)}
+                        >
+                          Reject
+                        </button>
+                      </div>
                     </div>
-                  )}
-                  <div
-                    className={`chat-header-status ${selectedFriend.Status === "online" ? "online" : "offline"}`}
-                  ></div>
+                  ))
+                ) : (
+                    <div>
+                  <div className="empty-icon">📭</div>
+                  <p>No friend requests</p>
                 </div>
-                <div className="chat-header-text">
-                  <h3>{selectedFriend.displayName}</h3>
-                  <p>
-                    {selectedFriend.Status === "online"
-                      ? "Active now"
-                      : "Offline"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="chat-header-actions">
-                <button className="chat-action-btn">
-                  <i className="bi bi-telephone"></i>
-                </button>
-                <button className="chat-action-btn">
-                  <i className="bi bi-camera-video"></i>
-                </button>
-                <button className="chat-action-btn">
-                  <i className="bi bi-info-circle"></i>
-                </button>
-                <button
-                  className="chat-action-btn"
-                  onClick={() => handleRemoveFriend(selectedFriend._id)}
-                  title="Remove friend"
-                >
-                  <i className="bi bi-person-dash"></i>
-                </button>
-              </div>
+                )
+              }
             </div>
+          </div>
+        ) : (
+          <div className="friends-list">
+            {filteredUsers.length > 0 ? (
+              filteredUsers.map((friendUser) => (
+                <div key={friendUser._id} className="friend-card">
+                  <div
+                    className="friend-avatar"
+                    onClick={() => handleViewProfile(friendUser._id)}
+                  >
+                    {friendUser.profileImage &&
+                    friendUser.profileImage !== "letter" ? (
+                      <img src={friendUser.profileImage} alt="Avatar" />
+                    ) : (
+                      <span>
+                        {friendUser.displayName?.charAt(0).toUpperCase() || "U"}
+                      </span>
+                    )}
+                   
+                  </div>
 
-            {/* Messages Container */}
-            <div className="messages-container">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`message-wrapper ${msg.sender === "me" ? "sent" : ""}`}
-                >
-                  <div className="message-content">
-                    <div className="message-bubble">{msg.text}</div>
-                    <span className="message-time">{msg.time}</span>
+                  <div className="friend-card-info">
+                    <h3
+                      className="friend-name"
+                      onClick={() => handleViewProfile(friendUser._id)}
+                    >
+                      {friendUser.displayName || "Unknown User"}
+                    </h3>
+                    <p className="friend-status">
+                      <i
+                        className={`bi bi-circle-fill ${friendUser.Status === "online" ? "status-online" : "status-offline"}`}
+                      ></i>
+                      {friendUser.Status === "online" ? "Online" : "Offline"}
+                    </p>
+                  </div>
+
+                  <div className="friend-card-actions">
+                    <button
+                      className="friend-action-btn message-btn"
+                      onClick={() => handleMessage(friendUser._id)}
+                      title="Send Message"
+                    >
+                      <i className="bi bi-chat-dots"></i>
+                      <span>Message</span>
+                    </button>
+                    <button
+                      className="friend-action-btn profile-btn"
+                      onClick={() => handleViewProfile(friendUser._id)}
+                      title="View Profile"
+                    >
+                      <i className="bi bi-person"></i>
+                      <span>View Profile</span>
+                    </button>
                   </div>
                 </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Message Input */}
-            <div className="message-input-area">
-              <div className="message-input-wrapper">
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                  placeholder="Type a message..."
-                />
-                <button
-                  className="send-btn"
-                  onClick={handleSendMessage}
-                  disabled={!message.trim()}
-                >
-                  <i className="bi bi-send-fill"></i>
-                </button>
+              ))
+            ) : (
+              <div className="empty-state">
+                <div className="empty-icon">👥</div>
+                <p>No users found</p>
               </div>
-            </div>
-          </>
-        ) : (
-          <div className="chat-empty-state">
-            Select a friend to start messaging
+            )}
           </div>
         )}
       </div>

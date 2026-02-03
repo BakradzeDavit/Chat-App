@@ -17,7 +17,10 @@ const messageSchema = new mongoose.Schema(
 
     content: {
       type: String,
-      required: true,
+      // Not required for media messages
+      required: function () {
+        return this.messageType === "text";
+      },
     },
 
     messageType: {
@@ -30,6 +33,29 @@ const messageSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+      },
+    ],
+
+    isEdited: {
+      type: Boolean,
+      default: false,
+    },
+
+    editedAt: {
+      type: Date,
+    },
+
+    replyTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message",
+    },
+
+    attachments: [
+      {
+        url: String,
+        name: String,
+        size: Number,
+        mimeType: String,
       },
     ],
   },

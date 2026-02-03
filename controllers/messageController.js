@@ -4,27 +4,31 @@ const Chat = require("../models/Chat");
 // ✅ Create a new message
 exports.createMessage = async (req, res) => {
   try {
-    const { chatId, content, messageType } = req.body;
-    const sender = req.user.id; // Assuming auth middleware sets req.user
+    const { chatId, content, messageType, attachments, replyTo } = req.body;
+    const sender = req.user.id;
 
-    // Check if chat exists and user is participant
     const chat = await Chat.findById(chatId);
     if (!chat) {
       return res.status(404).json({ message: "Chat not found" });
     }
-    if (!chat.participants.includes(sender)) {
+
+    const isParticipant = chat.participants.some(
+      (id) => id.toString() === sender,
+    );
+    if (!isParticipant) {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const message = new Message({
+    const message = await Message.create({
       chatId,
       sender,
       content,
-      messageType: messageType || "text",
+      messageType,
+      attachments: attachments || [],
+      replyTo: replyTo || null,
+      readBy: [sender],
     });
-    await message.save();
 
-    // Update chat's lastMessage
     chat.lastMessage = {
       sender,
       content,
@@ -32,14 +36,14 @@ exports.createMessage = async (req, res) => {
     };
     await chat.save();
 
-    // Populate sender for response
     await message.populate("sender", "username profilePicture");
 
     res.status(201).json(message);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error creating message", error: error.message });
+    res.status(500).json({
+      message: "Error creating message",
+      error: error.message,
+    });
   }
 };
 

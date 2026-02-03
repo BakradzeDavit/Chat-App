@@ -32,6 +32,13 @@ function Header({ user }) {
           <span>Friends</span>
         </Link>
         <Link
+          to="/chats"
+          className={`nav-link ${isActive("/chats") ? "active" : ""}`}
+        >
+          <i className="bi bi-chat-fill"></i>
+          <span>Chats</span>
+        </Link>
+        <Link
           to="/posts"
           className={`nav-link ${isActive("/posts") ? "active" : ""}`}
         >

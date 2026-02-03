@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { API_URL } from "../config";
+
 function DeletePost({ post, onDelete }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const handleClick = () => {
+  const handleClick = (e) => {
+    e.stopPropagation(); // Add this to prevent event bubbling
+
     if (!confirmDelete) {
       setConfirmDelete(true);
       setTimeout(() => setConfirmDelete(false), 3000);
@@ -44,19 +47,14 @@ function DeletePost({ post, onDelete }) {
   };
 
   return (
-    <button
+    <div
       onClick={handleClick}
-      className="PostDelete"
       disabled={isDeleting}
-      style={{
-        backgroundColor: confirmDelete
-          ? "rgba(239, 68, 68, 0.15)"
-          : "transparent",
-      }}
+      className="dropdown-item delete-post"
     >
       <i className="bi bi-trash"></i>
       {isDeleting ? "Deleting..." : confirmDelete ? "Confirm?" : "Delete"}
-    </button>
+    </div>
   );
 }
 
