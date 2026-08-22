@@ -45,6 +45,9 @@ function AppContent() {
     if (!LoggedIn || !user?.id) return;
 
     const socket = io(API_URL, {
+      auth: {
+        token: localStorage.getItem("token"),
+      },
       withCredentials: true,
       transports: ["websocket", "polling"],
     });
@@ -127,7 +130,7 @@ function AppContent() {
     const socket = socketConnection;
 
     const announceOnline = () => {
-      socket.emit("userOnline", user.id);
+      socket.emit("userOnline");
       console.log("App: User joined socket room:", user.id);
     };
 
@@ -187,7 +190,7 @@ function AppContent() {
     // Listen for new notifications (including friend requests)
     const handleNewNotification = async (notification) => {
       console.log("App: New notification received:", notification);
-      
+
       // If it's a friend request, refresh the user data
       if (notification.type === "friendRequest") {
         try {

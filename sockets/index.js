@@ -1,3 +1,4 @@
+const jwt = require("jsonwebtoken");
 const chatSocket = require("./chat.socket");
 const notifSocket = require("./notif.socket");
 const userSocket = require("./user.socket");
@@ -7,16 +8,27 @@ const reactionSocket = require("./reaction.socket");
 module.exports = (io) => {
   io.userConnections = io.userConnections || new Map();
 
+  io.use((socket, next) => {
+    const token = socket.handshake.auth.token;
+
+    if (!token) {
+      return next(new Error("Authentication error: No token provided"));
+    }
+
+    try {
+      const decoded = jwt.verify(token, process.env.SECRET_KEY);
+
+      socket.userId = String(decoded.id);
+
+      next();
+    } catch (err) {
+      console.error("Socket authentication error:", err);
+      next(new Error("Authentication error: Invalid token"));
+    }
+  });
+
   io.on("connection", async (socket) => {
     console.log("User connected:", socket.id);
-
-    // Get user ID from socket handshake
-    const userId =
-      socket.handshake.auth.userId || socket.handshake.query.userId;
-
-    if (userId) {
-      socket.userId = userId;
-    }
 
     // Initialize socket handlers
     chatSocket(socket, io);

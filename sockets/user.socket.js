@@ -28,9 +28,6 @@ module.exports = (socket, io) => {
     const userId = socket.userId;
     if (!userId) return;
 
-    // Explicit logout is followed by disconnect, so unregister only once.
-    socket.userId = null;
-
     const connections = io.userConnections.get(userId);
     if (!connections || !connections.delete(socket.id)) return;
 
@@ -44,29 +41,27 @@ module.exports = (socket, io) => {
   };
 
   // User goes online
-  socket.on("userOnline", async (rawUserId) => {
-    if (!rawUserId) return;
+  socket.on("userOnline", async () => {
+    const userId = socket.userId;
+    console.log("Authenticated socket user:", socket.userId);
+    if (!userId) return;
 
-    const userId = String(rawUserId);
-
-    if (socket.userId && socket.userId !== userId) {
-      socket.leave(`user_${socket.userId}`);
-      await unregisterConnection();
-    }
-
-    socket.userId = userId;
     socket.join(`user_${userId}`);
 
     const connections = io.userConnections.get(userId) || new Set();
+
     if (connections.has(socket.id)) return;
 
     const wasOffline = connections.size === 0;
+
     connections.add(socket.id);
     io.userConnections.set(userId, connections);
 
     console.log(`User ${userId} registered socket ${socket.id}`);
 
-    if (wasOffline) await updatePresence(io, userId, "online");
+    if (wasOffline) {
+      await updatePresence(io, userId, "online");
+    }
   });
 
   // Send friend request
@@ -74,7 +69,7 @@ module.exports = (socket, io) => {
     const { senderId, receiverId } = data;
 
     try {
-      const sender = await User.findById(senderId);
+      const sender = await User.findById(socket.userId);
       const receiver = await User.findById(receiverId);
 
       if (!sender || !receiver) {
