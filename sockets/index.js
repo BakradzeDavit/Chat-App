@@ -2,7 +2,7 @@ const chatSocket = require("./chat.socket");
 const notifSocket = require("./notif.socket");
 const userSocket = require("./user.socket");
 const messageSocket = require("./message.socket");
-const User = require("../models/user");
+const reactionSocket = require("./reaction.socket");
 
 module.exports = (io) => {
   io.userConnections = io.userConnections || new Map();
@@ -23,7 +23,7 @@ module.exports = (io) => {
     notifSocket(socket, io);
     userSocket(socket, io);
     messageSocket(socket, io);
-
+    reactionSocket(socket, io);
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
     });

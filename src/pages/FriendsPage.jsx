@@ -8,7 +8,7 @@ import {
 } from "../functions/Friends";
 import { createOrGetChat } from "../functions/Chat";
 
-function FriendsPage({ user }) {
+function FriendsPage({ user, socket }) {
   const [users, setUsers] = useState([]);
   const [FriendRequests, setFriendRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,10 +33,7 @@ function FriendsPage({ user }) {
 
   // Socket listener for real-time friend updates
   useEffect(() => {
-    if (!user || !user.id) return;
-
-    const socketInstance = window.socketRef?.current;
-    if (!socketInstance) return;
+    if (!socket || !user?.id) return;
 
     const handleFriendAdded = (data) => {
       console.log("Friend added:", data);
@@ -48,15 +45,36 @@ function FriendsPage({ user }) {
       fetchUsers();
     };
 
-    socketInstance.on("friendAdded", handleFriendAdded);
-    socketInstance.on("friendRemoved", handleFriendRemoved);
-
-    return () => {
-      socketInstance.off("friendAdded", handleFriendAdded);
-      socketInstance.off("friendRemoved", handleFriendRemoved);
+    const updateUserStatus = (friendId, Status) => {
+      setUsers((currentUsers) =>
+        currentUsers.map((currentUser) =>
+          String(currentUser._id) === String(friendId)
+            ? { ...currentUser, Status }
+            : currentUser,
+        ),
+      );
     };
 
-  }, [user]);
+    const handleFriendOnline = ({ friendId }) => {
+      updateUserStatus(friendId, "online");
+    };
+
+    const handleFriendOffline = ({ friendId }) => {
+      updateUserStatus(friendId, "offline");
+    };
+
+    socket.on("friendAdded", handleFriendAdded);
+    socket.on("friendRemoved", handleFriendRemoved);
+    socket.on("friendOnline", handleFriendOnline);
+    socket.on("friendOffline", handleFriendOffline);
+
+    return () => {
+      socket.off("friendAdded", handleFriendAdded);
+      socket.off("friendRemoved", handleFriendRemoved);
+      socket.off("friendOnline", handleFriendOnline);
+      socket.off("friendOffline", handleFriendOffline);
+    };
+  }, [socket, user?.id]);
 
   const fetchUsers = async () => {
     try {
@@ -198,19 +216,24 @@ function FriendsPage({ user }) {
                   FriendRequests.map((request) => (
                    
                     <div key={request} className="friend-request">
-                      <div
-                        className="friend-avatar"
-                        onClick={() => handleViewProfile(request._id)}
-                      >
-                        {request.profileImage &&
-                        request.profileImage !== "letter" ? (
-                          <img src={request.profileImage} alt="Avatar" />
-                        ) : (
+                      {request.profileImage &&
+                      request.profileImage !== "letter" ? (
+                        <img
+                          className="friend-avatar"
+                          src={request.profileImage}
+                          alt={`${request.displayName || "User"} avatar`}
+                          onClick={() => handleViewProfile(request._id)}
+                        />
+                      ) : (
+                        <div
+                          className="friend-avatar friend-avatar-placeholder"
+                          onClick={() => handleViewProfile(request._id)}
+                        >
                           <span>
                             {request.displayName?.charAt(0).toUpperCase() || "U"}
                           </span>
-                        )}
-                      </div>
+                        </div>
+                      )}
                       <div className="friend-request-info">
                         <h3
                           className="friend-name"
@@ -255,20 +278,24 @@ function FriendsPage({ user }) {
             {filteredUsers.length > 0 ? (
               filteredUsers.map((friendUser) => (
                 <div key={friendUser._id} className="friend-card">
-                  <div
-                    className="friend-avatar"
-                    onClick={() => handleViewProfile(friendUser._id)}
-                  >
-                    {friendUser.profileImage &&
-                    friendUser.profileImage !== "letter" ? (
-                      <img src={friendUser.profileImage} alt="Avatar" />
-                    ) : (
+                  {friendUser.profileImage &&
+                  friendUser.profileImage !== "letter" ? (
+                    <img
+                      className="friend-avatar"
+                      src={friendUser.profileImage}
+                      alt={`${friendUser.displayName || "User"} avatar`}
+                      onClick={() => handleViewProfile(friendUser._id)}
+                    />
+                  ) : (
+                    <div
+                      className="friend-avatar friend-avatar-placeholder"
+                      onClick={() => handleViewProfile(friendUser._id)}
+                    >
                       <span>
                         {friendUser.displayName?.charAt(0).toUpperCase() || "U"}
                       </span>
-                    )}
-                   
-                  </div>
+                    </div>
+                  )}
 
                   <div className="friend-card-info">
                     <h3

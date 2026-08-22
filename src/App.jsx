@@ -34,52 +34,43 @@ function AppContent() {
       ? JSON.parse(storedUser)
       : null;
   });
+  const [socketConnection, setSocketConnection] = useState(null);
   const navigate = useNavigate();
 
   // ✅ FIX 1: Use useRef to create socket only once
   const socketRef = useRef(null);
 
-  // Initialize socket connection once
+  // Keep the socket lifecycle aligned with the logged-in user.
   useEffect(() => {
-    if (!socketRef.current) {
-      socketRef.current = io(API_URL, {
-        withCredentials: true,
-        transports: ["websocket", "polling"],
-      });
+    if (!LoggedIn || !user?.id) return;
 
-      // Make socket globally accessible
-      window.socketRef = socketRef;
+    const socket = io(API_URL, {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+    });
 
-      socketRef.current.on("connect", () => {
-        console.log("Socket connected:", socketRef.current.id);
-      
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-          try {
-            const parsed = JSON.parse(storedUser);
-            if (parsed && parsed.id) {
-              socketRef.current.emit("userOnline", parsed.id);
-              console.log("Re-emitted userOnline for:", parsed.id);
-            }
-          } catch (e) {
-            console.error("Error parsing stored user for socket reconnect:", e);
-          }
-        }
-      });
+    socketRef.current = socket;
+    window.socketRef = socketRef;
+    setSocketConnection(socket);
 
-      socketRef.current.on("disconnect", () => {
-        console.log("Socket disconnected");
-      });
-    }
+    socket.on("connect", () => {
+      console.log("Socket connected:", socket.id);
+    });
 
-    // Cleanup on unmount
+    socket.on("disconnect", () => {
+      console.log("Socket disconnected");
+    });
+
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
+      socket.disconnect();
+
+      if (socketRef.current === socket) {
         socketRef.current = null;
       }
+
+      setSocketConnection((current) => (current === socket ? null : current));
     };
-  }, []);
+  }, [LoggedIn, user?.id]);
 
   // Check for existing login
   useEffect(() => {
@@ -131,13 +122,17 @@ function AppContent() {
 
   // ✅ Global socket listeners that persist across pages
   useEffect(() => {
-    if (!socketRef.current || !user?.id) return;
+    if (!socketConnection || !user?.id) return;
 
-    const socket = socketRef.current;
+    const socket = socketConnection;
 
-    // Join user's socket room
-    socket.emit("userOnline", user.id);
-    console.log("App: User joined socket room:", user.id);
+    const announceOnline = () => {
+      socket.emit("userOnline", user.id);
+      console.log("App: User joined socket room:", user.id);
+    };
+
+    socket.on("connect", announceOnline);
+    if (socket.connected) announceOnline();
 
     // Listen for friend removed event
     const handleFriendRemoved = (data) => {
@@ -225,6 +220,7 @@ function AppContent() {
     console.log("App: Registered global friend event listeners");
 
     return () => {
+      socket.off("connect", announceOnline);
       socket.off("friendRemoved", handleFriendRemoved);
       socket.off("friendAdded", handleFriendAdded);
       socket.off("friendOnline", handleFriendOnline);
@@ -232,7 +228,7 @@ function AppContent() {
       socket.off("newNotification", handleNewNotification);
       console.log("App: Cleaned up global socket listeners");
     };
-  }, [user?.id]); // Only re-run if user.id changes
+  }, [socketConnection, user?.id]);
 
   const handleLogout = () => {
     // Explicitly tell server to mark as offline
@@ -241,6 +237,7 @@ function AppContent() {
       socketRef.current.disconnect();
       socketRef.current = null;
     }
+    setSocketConnection(null);
 
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -291,7 +288,7 @@ function AppContent() {
           path="/home"
           element={
             LoggedIn ? (
-              <HomePage socket={socketRef.current} />
+              <HomePage socket={socketConnection} />
             ) : (
               <Navigate to="/login" />
             )
@@ -318,7 +315,7 @@ function AppContent() {
             LoggedIn && user ? (
               <PostsPage
                 user={user}
-                socket={socketRef.current}
+                socket={socketConnection}
                 setAlertMessage={setAlertMessage}
               />
             ) : (
@@ -340,7 +337,7 @@ function AppContent() {
           path="/chats"
           element={
             LoggedIn && user ? (
-              <ChatsPage user={user} socket={socketRef.current} />
+              <ChatsPage user={user} socket={socketConnection} />
             ) : (
               <Navigate to="/login" />
             )
@@ -351,7 +348,7 @@ function AppContent() {
           element={
             <PostPage
               user={user}
-              socket={socketRef.current}
+              socket={socketConnection}
               setAlertMessage={setAlertMessage}
             />
           }
@@ -361,7 +358,7 @@ function AppContent() {
           path="/friends"
           element={
             LoggedIn && user ? (
-              <FriendsPage user={user} />
+              <FriendsPage user={user} socket={socketConnection} />
             ) : (
               <Navigate to="/login" />
             )

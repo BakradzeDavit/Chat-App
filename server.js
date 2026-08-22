@@ -2,17 +2,13 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const express = require("express");
 const http = require("http");
+const User = require("./models/user");
 require("dotenv").config();
 
 const app = express();
 
 const uri = process.env.MONGODB_URI;
 const PORT = process.env.PORT || 3000;
-
-mongoose
-  .connect(uri)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error(err));
 
 app.use(cors());
 app.use(express.json());
@@ -64,8 +60,25 @@ app.get("/", (req, res) => {
   });
 });
 
-// Start server
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
 // Initialize socket handlers
 require("./sockets/index")(io);
+
+const startServer = async () => {
+  try {
+    await mongoose.connect(uri);
+    console.log("MongoDB connected");
+
+    // Presence is connection-derived, so old values cannot survive a restart.
+    await User.updateMany(
+      { Status: "online" },
+      { $set: { Status: "offline" } },
+    );
+
+    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exitCode = 1;
+  }
+};
+
+startServer();

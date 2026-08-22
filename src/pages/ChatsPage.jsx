@@ -1,7 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { API_URL } from "../config";
+import Message from "../components/Message";
 import "./ChatsPage.css";
+
+const getReactionUserId = (reaction) => {
+  const reactionUser = reaction?.user;
+
+  if (reactionUser && typeof reactionUser === "object") {
+    return reactionUser._id ?? reactionUser.id;
+  }
+
+  return reactionUser;
+};
 
 function ChatsPage({ user, socket }) {
   const [chats, setChats] = useState([]);
@@ -55,6 +66,104 @@ function ChatsPage({ user, socket }) {
       console.error("Error removing friend:", error);
     }
   };
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleReactionUpdated = (updatedMessage) => {
+      if (!updatedMessage?._id) return;
+
+      setMessages((currentMessages) =>
+        currentMessages.map((currentMessage) =>
+          String(currentMessage._id) === String(updatedMessage._id)
+            ? updatedMessage
+            : currentMessage,
+        ),
+      );
+    };
+
+    socket.on("message_reaction_updated", handleReactionUpdated);
+
+    return () => {
+      socket.off("message_reaction_updated", handleReactionUpdated);
+    };
+  }, [socket]);
+
+  const handleReact = (reactedMessage, emoji) => {
+    const currentUserId = user?._id || user?.id;
+    const messageId = reactedMessage?._id;
+
+    if (
+      !socket ||
+      !selectedChat?._id ||
+      !messageId ||
+      !emoji ||
+      !currentUserId
+    ) {
+      return;
+    }
+
+    const normalizedMessageId = String(messageId);
+    const normalizedUserId = String(currentUserId);
+
+    setMessages((currentMessages) =>
+      currentMessages.map((currentMessage) => {
+        if (String(currentMessage._id) !== normalizedMessageId) {
+          return currentMessage;
+        }
+
+        const reactions = Array.isArray(currentMessage.reactions)
+          ? currentMessage.reactions
+          : [];
+        const isCurrentUsersReaction = (reaction) =>
+          String(getReactionUserId(reaction)) === normalizedUserId &&
+          reaction.emoji === emoji;
+        const alreadyReacted = reactions.some(isCurrentUsersReaction);
+
+        return {
+          ...currentMessage,
+          reactions: alreadyReacted
+            ? reactions.filter((reaction) => !isCurrentUsersReaction(reaction))
+            : [
+                ...reactions,
+                {
+                  _id: `optimistic:${normalizedMessageId}:${normalizedUserId}:${encodeURIComponent(emoji)}`,
+                  user: currentUserId,
+                  emoji,
+                },
+              ],
+        };
+      }),
+    );
+
+    socket.emit("react_message", {
+      chatId: selectedChat._id,
+      messageId,
+      emoji,
+    });
+  };
+
+  useEffect(() => {
+    if (!socket || !selectedChat?._id) return;
+
+    const chatId = String(selectedChat._id);
+    const joinSelectedChat = () => {
+      socket.emit("joinChat", chatId);
+    };
+
+    socket.on("connect", joinSelectedChat);
+
+    if (socket.connected) {
+      joinSelectedChat();
+    }
+
+    return () => {
+      socket.off("connect", joinSelectedChat);
+
+      if (socket.connected) {
+        socket.emit("leaveChat", chatId);
+      }
+    };
+  }, [socket, selectedChat?._id]);
 
   const handleSendMessage = () => {
     if (!message.trim() || !selectedChat || !socket) return;
@@ -105,54 +214,38 @@ function ChatsPage({ user, socket }) {
     return () => socket.off("receive_message", handleIncoming);
   }, [socket]);
 
-  // ✅ Socket listener for online/offline status
+  // Keep both the conversation list and open chat in sync with presence events.
   useEffect(() => {
     if (!socket) return;
 
-    const handleFriendOnline = (data) => {
-      const { friendId } = data;
-      console.log("Friend online:", friendId);
-
+    const updateFriendStatus = (friendId, Status) => {
       setChats((prevChats) =>
         prevChats.map((chat) =>
-          chat.otherParticipant?._id === friendId
+          String(chat.otherParticipant?._id) === String(friendId)
             ? {
                 ...chat,
                 otherParticipant: {
                   ...chat.otherParticipant,
-                  Status: "online",
+                  Status,
                 },
               }
             : chat,
         ),
       );
 
-      if (selectedFriend?._id === friendId) {
-        setSelectedFriend((prev) => ({ ...prev, Status: "online" }));
-      }
+      setSelectedFriend((currentFriend) =>
+        String(currentFriend?._id) === String(friendId)
+          ? { ...currentFriend, Status }
+          : currentFriend,
+      );
     };
 
-    const handleFriendOffline = (data) => {
-      const { friendId } = data;
-      console.log("Friend offline:", friendId);
+    const handleFriendOnline = ({ friendId }) => {
+      updateFriendStatus(friendId, "online");
+    };
 
-      setChats((prevChats) =>
-        prevChats.map((chat) =>
-          chat.otherParticipant?._id === friendId
-            ? {
-                ...chat,
-                otherParticipant: {
-                  ...chat.otherParticipant,
-                  Status: "offline",
-                },
-              }
-            : chat,
-        ),
-      );
-
-      if (selectedFriend?._id === friendId) {
-        setSelectedFriend((prev) => ({ ...prev, Status: "offline" }));
-      }
+    const handleFriendOffline = ({ friendId }) => {
+      updateFriendStatus(friendId, "offline");
     };
 
     socket.on("friendOnline", handleFriendOnline);
@@ -162,7 +255,7 @@ function ChatsPage({ user, socket }) {
       socket.off("friendOnline", handleFriendOnline);
       socket.off("friendOffline", handleFriendOffline);
     };
-  }, [socket, selectedFriend?._id]);
+  }, [socket]);
 
   useEffect(() => {
     if (!selectedFriend || selectedChat) return; // Skip if chat already set
@@ -226,7 +319,7 @@ function ChatsPage({ user, socket }) {
   return (
     <div className="chats-page">
       {/* Left Sidebar - Friends List */}
-      <div className="friends-sidebar">
+      <div className={`friends-sidebar ${selectedFriend ? "hide-mobile" : ""}`}>
         <div className="sidebar-header">
           <h1>Messages</h1>
           <div className="search-bar">
@@ -301,11 +394,21 @@ function ChatsPage({ user, socket }) {
       </div>
 
       {/* Right Side - Chat Area */}
-      <div className="chat-area">
+      <div className={`chat-area ${selectedFriend ? "show-mobile" : ""}`}>
         {selectedFriend ? (
           <>
             {/* Chat Header */}
             <div className="chat-header">
+              <button
+                className="mobile-back-btn"
+                onClick={() => {
+                  setSelectedFriend(null);
+                  setSelectedChat(null);
+                }}
+                title="Back to conversations"
+              >
+                <i className="bi bi-arrow-left"></i>
+              </button>
               <div className="chat-header-info">
                 <div className="chat-header-avatar">
                   {selectedFriend.profileImage &&
@@ -354,37 +457,18 @@ function ChatsPage({ user, socket }) {
 
             {/* Messages Container */}
             <div className="messages-container">
-              {messages.map((msg, index) => {
-                const currentUserId = user._id || user.id;
-                const msgSenderId =
-                  typeof msg.sender === "object" ? msg.sender._id : msg.sender;
-                const isMyMessage = msgSenderId === currentUserId;
-
-                return (
-                  <div
-                    key={
-                      msg._id ||
-                      msg.id ||
-                      `${msg.sender || "user"}-${msg.createdAt || "time"}-${index}`
-                    }
-                    className={`message-wrapper ${isMyMessage ? "sent" : ""}`}
-                  >
-                    <div className="message-content">
-                      <div className="message-bubble">
-                        {msg.content || msg.text}
-                      </div>
-                      <span className="message-time">
-                        {new Date(
-                          msg.createdAt || msg.timestamp,
-                        ).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+              {messages.map((msg, index) => (
+                <Message
+                  key={
+                    msg._id ||
+                    msg.id ||
+                    `${msg.sender || "user"}-${msg.createdAt || "time"}-${index}`
+                  }
+                  message={msg}
+                  currentUserId={user._id || user.id}
+                  onReact={handleReact}
+                />
+              ))}
 
               <div ref={messagesEndRef} />
             </div>

@@ -106,7 +106,7 @@ function Notifications({ user }) {
   const unreadNotifications = notifications.filter((n) => !n.Read);
 
   return (
-    <div>
+    <div className="notifications-root">
       <i
         onClick={() => setIsOpen(!isOpen)}
         className={

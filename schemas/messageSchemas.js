@@ -39,9 +39,15 @@ const chatIdParamSchema = z.object({
     chatId: objectIdSchema,
   }),
 });
+const reactMessageSchema = z.object({
+  chatId: objectIdSchema,
+  messageId: objectIdSchema,
+  emoji: z.string().min(1).max(20),
+});
 
 module.exports = {
   createMessageSchema,
   messageIdParamSchema,
   chatIdParamSchema,
+  reactMessageSchema,
 };

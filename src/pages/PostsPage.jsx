@@ -8,7 +8,7 @@ import LikePost from "../components/LikePost";
 import postsfunctions from "../functions/posts";
 import "./PostsPage.css";
 
-function PostsPage({ user, setAlertMessage }) {
+function PostsPage({ user, socket, setAlertMessage }) {
   const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState("text"); // 'text' or 'media'
   const [newPost, setNewPost] = useState("");
@@ -85,19 +85,15 @@ function PostsPage({ user, setAlertMessage }) {
   useEffect(() => {
     if (!user || !user.id) return;
 
-    const socketInstance = window.socketRef?.current;
-    if (!socketInstance) return;
-
-    // Join user's socket room
-    socketInstance.emit("userOnline", user.id);
+    if (!socket) return;
 
     // Listen for post liked event
-    socketInstance.on("postLiked", handlePostLiked);
+    socket.on("postLiked", handlePostLiked);
 
     return () => {
-      socketInstance.off("postLiked", handlePostLiked);
+      socket.off("postLiked", handlePostLiked);
     };
-  }, [user]);
+  }, [socket, user?.id]);
 
   return (
     <div className="posts-page">
@@ -186,17 +182,19 @@ function PostsPage({ user, setAlertMessage }) {
                         to={`/users/${post.author}/profile`}
                         className="media-user-info"
                       >
-                        <div className="media-avatar">
-                          {post.profileImage &&
-                          (post.profileImage.startsWith("http") ||
-                            post.profileImage.startsWith("data:")) ? (
-                            <img src={post.profileImage} alt="Avatar" />
-                          ) : (
-                            <span>
-                              {post.displayName?.charAt(0).toUpperCase() || "U"}
-                            </span>
-                          )}
-                        </div>
+                        {post.profileImage &&
+                        (post.profileImage.startsWith("http") ||
+                          post.profileImage.startsWith("data:")) ? (
+                          <img
+                            className="media-avatar"
+                            src={post.profileImage}
+                            alt={`${post.displayName || "User"} avatar`}
+                          />
+                        ) : (
+                          <span className="media-avatar media-avatar-placeholder">
+                            {post.displayName?.charAt(0).toUpperCase() || "U"}
+                          </span>
+                        )}
                         <div className="media-user-details">
                           <span className="media-username">
                             {post.displayName || "Unknown User"}
@@ -364,18 +362,18 @@ function PostsPage({ user, setAlertMessage }) {
                   <div className="post-content-wrapper">
                     <Link
                       to={`/users/${post.author}/profile`}
-                      className="post-avatar"
+                      className="post-avatar-link"
                     >
                       {post.profileImage &&
                       (post.profileImage.startsWith("http") ||
                         post.profileImage.startsWith("data:")) ? (
                         <img
                           src={post.profileImage}
-                          alt="Avatar"
-                          className="post-profile-image"
+                          alt={`${post.displayName || "User"} avatar`}
+                          className="post-avatar"
                         />
                       ) : (
-                        <span>
+                        <span className="post-avatar post-avatar-placeholder">
                           {post.displayName?.charAt(0).toUpperCase() || "U"}
                         </span>
                       )}

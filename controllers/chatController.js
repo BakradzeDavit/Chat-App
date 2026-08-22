@@ -41,7 +41,7 @@ const getUserChats = async (req, res) => {
     const chats = await Chat.find({
       participants: userId,
     })
-      .populate("participants", "displayName profileImage")
+      .populate("participants", "displayName profileImage Status")
       .populate("lastMessage.sender", "displayName profileImage")
       .sort({ "lastMessage.timestamp": -1 });
 

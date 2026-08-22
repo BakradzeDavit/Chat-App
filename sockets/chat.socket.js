@@ -3,8 +3,11 @@ const Chat = require("../models/Chat");
 module.exports = (socket, io) => {
   // Join a chat room
   socket.on("joinChat", (chatId) => {
-    socket.join(chatId);
-    console.log(`User ${socket.id} joined chat ${chatId}`);
+    if (!chatId) return;
+
+    const roomName = String(chatId);
+    socket.join(roomName);
+    console.log(`User ${socket.id} joined chat ${roomName}`);
   });
 
   // Send a message
@@ -38,7 +41,10 @@ module.exports = (socket, io) => {
 
   // Leave chat
   socket.on("leaveChat", (chatId) => {
-    socket.leave(chatId);
-    console.log(`User ${socket.id} left chat ${chatId}`);
+    if (!chatId) return;
+
+    const roomName = String(chatId);
+    socket.leave(roomName);
+    console.log(`User ${socket.id} left chat ${roomName}`);
   });
 };

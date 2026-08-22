@@ -1,104 +1,163 @@
-/* Registration Page */
 .RegistrationPage {
-  margin: 0;
-  background-color: var(--bg-primary);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+  position: relative;
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  overflow: hidden;
+  padding: 32px 18px;
+  background:
+    radial-gradient(
+      circle at 18% 18%,
+      rgba(174, 99, 72, 0.2),
+      transparent 24rem
+    ),
+    radial-gradient(
+      circle at 86% 82%,
+      rgba(95, 118, 95, 0.16),
+      transparent 28rem
+    ),
+    var(--bg-primary);
 }
 
-/* Login & Signup Cards */
+.RegistrationPage::before {
+  position: absolute;
+  top: -170px;
+  right: -120px;
+  width: 380px;
+  height: 380px;
+  border: 1px solid rgba(173, 98, 72, 0.15);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 46px rgba(173, 98, 72, 0.035),
+    0 0 0 94px rgba(173, 98, 72, 0.025);
+  content: "";
+}
+
+.RegistrationPage::after {
+  position: absolute;
+  bottom: 8%;
+  left: 5%;
+  width: 130px;
+  height: 1px;
+  background: var(--accent-primary);
+  box-shadow: 0 8px 0 rgba(173, 98, 72, 0.28);
+  content: "";
+  opacity: 0.55;
+  transform: rotate(-8deg);
+}
+
 .login,
 .signup {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  padding: 35px 45px;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px var(--shadow);
-  text-align: center;
-  width: 420px;
-  max-width: 90vw;
-  border: 1px solid var(--border-color);
+  position: relative;
+  z-index: 1;
   display: flex;
+  width: min(430px, 100%);
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  padding: clamp(34px, 6vw, 50px);
+  border: 1px solid rgba(210, 200, 186, 0.9);
+  border-radius: 16px 16px 16px 5px;
+  color: var(--text-primary);
+  background: rgba(255, 253, 248, 0.94);
+  box-shadow: var(--shadow-raised);
+  text-align: left;
+  backdrop-filter: blur(12px);
+  animation: pageEnter 420ms ease both;
+}
+
+.login::before,
+.signup::before {
+  width: 34px;
+  height: 4px;
+  margin-bottom: 22px;
+  border-radius: 1px;
+  background: var(--accent-primary);
+  content: "";
 }
 
 .login h2,
 .signup h2 {
-  margin-bottom: 24px;
+  margin: 0 0 30px;
   color: var(--text-primary);
-  font-size: 28px;
-  font-weight: 600;
+  font-size: clamp(34px, 7vw, 44px);
+  line-height: 1;
 }
 
 .input-group,
 .password-group {
-  margin-bottom: 18px;
   position: relative;
   width: 100%;
+  margin-bottom: 14px;
 }
 
 .input {
   width: 100%;
-  padding: 12px 14px;
+  height: 50px;
+  padding: 0 44px 0 14px;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  border: 1.5px solid var(--border-color);
-  font-size: 15px;
-  background-color: var(--bg-tertiary);
   color: var(--text-primary);
-  box-sizing: border-box;
-  transition: all 0.2s ease;
+  background: #faf7f0;
+  font-size: 15px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
 }
 
 .input::placeholder {
   color: var(--text-muted);
 }
 
+.input:hover {
+  border-color: #c9beae;
+}
+
 .input:focus {
-  outline: none;
   border-color: var(--accent-primary);
-  background-color: var(--bg-primary);
-  box-shadow: 0 0 0 3px rgba(139, 125, 125, 0.15);
+  outline: none;
+  background: #fffefb;
+  box-shadow: 0 0 0 3px rgba(173, 98, 72, 0.11);
 }
 
 .eye {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 50%;
+  right: 14px;
+  color: var(--text-muted);
   cursor: pointer;
-  color: var(--text-secondary);
-  font-size: 18px;
-  transition: color 0.2s ease;
+  font-size: 17px;
+  transform: translateY(-50%);
+  transition: color 150ms ease;
 }
 
 .eye:hover {
-  color: var(--text-primary);
+  color: var(--accent-secondary);
 }
 
 .loginBtn,
 .signupBtn {
   width: 100%;
-  padding: 12px;
-  margin-top: 8px;
-  margin-bottom: 16px;
-  border: none;
+  min-height: 48px;
+  margin: 8px 0 4px;
+  border: 1px solid var(--accent-primary);
   border-radius: 8px;
-  font-size: 16px;
+  color: #fffaf4;
+  background: var(--accent-primary);
   cursor: pointer;
-  transition: all 0.3s ease;
-  background-color: var(--accent-primary);
-  color: var(--text-primary);
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
 }
 
 .loginBtn:hover,
 .signupBtn:hover {
-  background-color: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+  background: var(--accent-secondary);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(139, 125, 125, 0.3);
 }
 
 .loginBtn:active,
@@ -108,37 +167,48 @@
 
 .toggle-text {
   width: 100%;
+  margin: 18px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 400;
   text-align: center;
-  color: var(--text-secondary);
-  font-size: 15px;
-  font-weight: normal;
-  margin-top: 12px;
 }
 
 .toggleReg {
+  padding: 0;
+  border: 0;
+  color: var(--accent-secondary);
   background: none;
-  border: none;
-  color: var(--accent-primary);
-  text-decoration: none;
   cursor: pointer;
-  font-size: 15px;
-  font-weight: 600;
-  transition: color 0.2s ease;
+  font-size: inherit;
+  font-weight: 700;
+  text-underline-offset: 3px;
 }
 
 .toggleReg:hover {
-  color: var(--accent-secondary);
   text-decoration: underline;
 }
 
 .error-message {
-  margin-bottom: 15px;
-  color: var(--error-color);
-  font-size: 14px;
-  padding: 10px;
-  background-color: rgba(224, 108, 117, 0.1);
-  border-radius: 6px;
-  border: 1px solid var(--error-color);
   width: 100%;
-  box-sizing: border-box;
+  margin: -8px 0 16px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--error-color);
+  border-radius: 4px;
+  color: #7d3731;
+  background: #f8e7e2;
+  font-size: 13px;
+}
+
+@media (max-width: 520px) {
+  .RegistrationPage {
+    align-items: end;
+    padding: 18px 12px;
+  }
+
+  .login,
+  .signup {
+    padding: 34px 24px;
+    border-radius: 16px 16px 7px 7px;
+  }
 }

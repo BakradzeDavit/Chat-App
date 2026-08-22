@@ -1,49 +1,72 @@
 const User = require("../models/user");
 
+const updatePresence = async (io, userId, status) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { Status: status },
+      { new: true },
+    ).select("friends");
+
+    if (!user) return;
+
+    const eventName = status === "online" ? "friendOnline" : "friendOffline";
+    user.friends.forEach((friendId) => {
+      io.to(`user_${friendId}`).emit(eventName, {
+        friendId: String(userId),
+      });
+    });
+
+    console.log(`User ${userId} is now ${status}`);
+  } catch (error) {
+    console.error(`Error marking user ${status}:`, error);
+  }
+};
+
 module.exports = (socket, io) => {
+  const unregisterConnection = async () => {
+    const userId = socket.userId;
+    if (!userId) return;
+
+    // Explicit logout is followed by disconnect, so unregister only once.
+    socket.userId = null;
+
+    const connections = io.userConnections.get(userId);
+    if (!connections || !connections.delete(socket.id)) return;
+
+    if (connections.size > 0) {
+      io.userConnections.set(userId, connections);
+      return;
+    }
+
+    io.userConnections.delete(userId);
+    await updatePresence(io, userId, "offline");
+  };
+
   // User goes online
-  socket.on("userOnline", async (userId) => {
+  socket.on("userOnline", async (rawUserId) => {
+    if (!rawUserId) return;
+
+    const userId = String(rawUserId);
+
+    if (socket.userId && socket.userId !== userId) {
+      socket.leave(`user_${socket.userId}`);
+      await unregisterConnection();
+    }
+
     socket.userId = userId;
     socket.join(`user_${userId}`);
-    console.log(
-      `✅ User ${userId} joined room user_${userId}, socket ID: ${socket.id}`,
-    );
 
-    const prevCount = io.userConnections.get(userId) || 0;
-    io.userConnections.set(userId, prevCount + 1);
+    const connections = io.userConnections.get(userId) || new Set();
+    if (connections.has(socket.id)) return;
 
-    // Always update status to online to handle reconnections reliably
-    try {
-      await User.findByIdAndUpdate(userId, { Status: "online" });
-      console.log(`User ${userId} is now online (force update)`);
-    } catch (error) {
-      console.error("Error updating user status:", error);
-    }
+    const wasOffline = connections.size === 0;
+    connections.add(socket.id);
+    io.userConnections.set(userId, connections);
 
-    if (prevCount === 0) {
-      // Emit to friends that user is online (only if they were offline before)
-      // Actually, we should probably emit this always too?
-      // If we emit always, friends get "online" event multiple times.
-      // Front-end handles it (idempotent state update).
-      // But let's stick to only emitting if new connection, OR just emit safely.
-      // If we emit always, it ensures friends UI is consistent.
-      try {
-        const user = await User.findById(userId).populate("friends");
-        user.friends.forEach((friend) => {
-          io.to(`user_${friend._id}`).emit("friendOnline", {
-            friendId: userId,
-          });
-        });
-      } catch (error) {
-        console.error("Error emitting friend online:", error);
-      }
-    } else {
-      // Even if prevCount > 0, we might want to emit to be safe?
-      // Let's keep emission inside prevCount === 0 for noise reduction,
-      // but the DB update is the critical "100%" fix.
-      // Wait, if server restarted, prevCount is 0 for everyone reconnecting.
-      // So logic holds.
-    }
+    console.log(`User ${userId} registered socket ${socket.id}`);
+
+    if (wasOffline) await updatePresence(io, userId, "online");
   });
 
   // Send friend request
@@ -106,100 +129,16 @@ module.exports = (socket, io) => {
 
   // User disconnects
   socket.on("disconnect", async () => {
-    if (socket.userId) {
-      console.log(`User ${socket.userId} disconnected`);
-
-      const prevCount = io.userConnections.get(socket.userId) || 0;
-      const newCount = prevCount - 1;
-
-      if (newCount <= 0) {
-        io.userConnections.delete(socket.userId);
-
-        // Update user status to offline
-        try {
-          await User.findByIdAndUpdate(socket.userId, { Status: "offline" });
-          console.log(`User ${socket.userId} is now offline`);
-        } catch (error) {
-          console.error("Error updating user status:", error);
-        }
-
-        // Emit to friends that user is offline
-        try {
-          const user = await User.findById(socket.userId).populate("friends");
-          user.friends.forEach((friend) => {
-            io.to(`user_${friend._id}`).emit("friendOffline", {
-              friendId: socket.userId,
-            });
-          });
-        } catch (error) {
-          console.error("Error emitting friend offline:", error);
-        }
-      } else {
-        io.userConnections.set(socket.userId, newCount);
-      }
-    }
+    await unregisterConnection();
   });
 
-  // User goes offline (e.g., on page close)
-  socket.on("userOffline", async (userId) => {
-    console.log(`User ${userId} going offline (client initiated)`);
-
-    // Force remove connection count
-    io.userConnections.delete(userId);
-
-    // Update user status to offline
-    try {
-      await User.findByIdAndUpdate(userId, { Status: "offline" });
-      console.log(`User ${userId} marked offline (client offline)`);
-    } catch (error) {
-      console.error("Error updating user status:", error);
-    }
-
-    // Emit to friends that user is offline
-    try {
-      const user = await User.findById(userId).populate("friends");
-      if (user && user.friends) {
-        user.friends.forEach((friend) => {
-          io.to(`user_${friend._id}`).emit("friendOffline", {
-            friendId: userId,
-          });
-        });
-      }
-    } catch (error) {
-      console.error("Error emitting friend offline:", error);
-    }
+  socket.on("userOffline", async () => {
+    await unregisterConnection();
   });
 
   // User explicitly logs out
-  socket.on("userLogout", async (userId) => {
-    console.log(`User ${userId} logging out (force offline)`);
-
-    // Force remove connection count
-    io.userConnections.delete(userId);
-
-    // Update user status to offline
-    try {
-      await User.findByIdAndUpdate(userId, { Status: "offline" });
-      console.log(`User ${userId} marked offline (logout)`);
-    } catch (error) {
-      console.error("Error updating user status:", error);
-    }
-
-    // Emit to friends that user is offline
-    try {
-      const user = await User.findById(userId).populate("friends");
-      if (user && user.friends) {
-        user.friends.forEach((friend) => {
-          io.to(`user_${friend._id}`).emit("friendOffline", {
-            friendId: userId,
-          });
-        });
-      }
-    } catch (error) {
-      console.error("Error emitting friend offline:", error);
-    }
-
-    // Disconnect socket
-    socket.disconnect();
+  socket.on("userLogout", async () => {
+    await unregisterConnection();
+    socket.disconnect(true);
   });
 };

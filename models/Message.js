@@ -58,6 +58,15 @@ const messageSchema = new mongoose.Schema(
         mimeType: String,
       },
     ],
+    reactions: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        emoji: String,
+      },
+    ],
   },
   { timestamps: true },
 );
