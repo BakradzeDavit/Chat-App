@@ -66,10 +66,10 @@ module.exports = (socket, io) => {
 
   // Send friend request
   socket.on("sendFriendRequest", async (data) => {
-    const { senderId, receiverId } = data;
-
+    const { receiverId } = data;
+    const senderId = socket.userId;
     try {
-      const sender = await User.findById(socket.userId);
+      const sender = await User.findById(senderId);
       const receiver = await User.findById(receiverId);
 
       if (!sender || !receiver) {
@@ -95,20 +95,30 @@ module.exports = (socket, io) => {
 
   // Accept friend request
   socket.on("acceptFriendRequest", async (data) => {
-    const { userId, friendId } = data;
-
+    const { friendId } = data;
+    const userId = socket.userId;
     try {
       const user = await User.findById(userId);
       const friend = await User.findById(friendId);
+      if (!user || !friend) {
+        return socket.emit("error", "User not found");
+      }
+      const requestExists = friend.friendRequestsSent.some(
+        (id) => String(id) === String(userId),
+      );
 
+      if (!requestExists) {
+        return socket.emit("error", "No friend request from this user");
+      }
       user.friends.push(friendId);
       friend.friends.push(userId);
 
       user.friendRequestsReceived = user.friendRequestsReceived.filter(
-        (id) => id.toString() !== friendId,
+        (id) => String(id) !== String(friendId),
       );
+
       friend.friendRequestsSent = friend.friendRequestsSent.filter(
-        (id) => id.toString() !== userId,
+        (id) => String(id) !== String(userId),
       );
 
       await user.save();

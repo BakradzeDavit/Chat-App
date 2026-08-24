@@ -233,14 +233,16 @@ const likePost = async (req, res) => {
 
           if (!alreadyExists) {
             console.log("Pushing new notification with sender:", userId);
-            author.Notifications.push({
-              type: "postLike",
-              sender:
-                typeof userId === "string"
-                  ? new mongoose.Types.ObjectId(userId)
-                  : userId,
-              post: post._id,
-            });
+            if (String(post.author) !== String(userId)) {
+              author.Notifications.push({
+                type: "postLike",
+                sender:
+                  typeof userId === "string"
+                    ? new mongoose.Types.ObjectId(userId)
+                    : userId,
+                post: post._id,
+              });
+            }
 
             await author.save();
             console.log("Notification saved to author");
