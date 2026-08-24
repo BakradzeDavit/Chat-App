@@ -10,10 +10,9 @@ module.exports = (socket, io) => {
         messageType = "text",
         attachments = [],
         replyTo = null,
-        sender,
       } = data || {};
 
-      const senderId = sender || socket.userId || socket.user?._id;
+      const senderId = socket.userId;
       if (!chatId || !senderId) {
         socket.emit("message_error", {
           message: "Missing chatId or sender",
@@ -54,7 +53,7 @@ module.exports = (socket, io) => {
 
       await message.populate("sender", "username profilePicture");
 
-      io.emit("receive_message", message);
+      io.to(String(chatId)).emit("receive_message", message);
     } catch (error) {
       console.error("Socket message error:", error);
       socket.emit("message_error", {
