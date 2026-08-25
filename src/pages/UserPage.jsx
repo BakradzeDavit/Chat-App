@@ -137,13 +137,15 @@ function UserPage({ currentUser }) {
     }
   }, [activeTab, id, userData]);
 
-
   const [showDropdown, setShowDropdown] = useState(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showDropdown && !event.target.closest(".user-actions-dropdown-container")) {
+      if (
+        showDropdown &&
+        !event.target.closest(".user-actions-dropdown-container")
+      ) {
         setShowDropdown(false);
       }
     };
@@ -155,7 +157,11 @@ function UserPage({ currentUser }) {
   }, [showDropdown]);
 
   const handleRemoveFriend = async () => {
-    if (window.confirm(`Are you sure you want to remove ${userData.displayName} from your friends?`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to remove ${userData.displayName} from your friends?`,
+      )
+    ) {
       const result = await functions.handleRemoveFriend(id, setFriendStatus);
       if (result.success) {
         setShowDropdown(false);
@@ -202,8 +208,11 @@ function UserPage({ currentUser }) {
 
             {/* Action Buttons */}
             <div className="user-actions">
-              <div className="user-actions-dropdown-container" style={{ position: 'relative' }}>
-                <button 
+              <div
+                className="user-actions-dropdown-container"
+                style={{ position: "relative" }}
+              >
+                <button
                   className="user-action-btn"
                   onClick={() => setShowDropdown(!showDropdown)}
                 >
@@ -212,7 +221,7 @@ function UserPage({ currentUser }) {
                 {showDropdown && (
                   <div className="user-actions-dropdown">
                     {friendStatus === "friends" && (
-                      <button 
+                      <button
                         className="user-actions-dropdown-item danger"
                         onClick={handleRemoveFriend}
                       >
@@ -221,16 +230,16 @@ function UserPage({ currentUser }) {
                       </button>
                     )}
                     {/* Add more options here if needed, generic Report button example */}
-                     <button 
-                        className="user-actions-dropdown-item"
-                        onClick={() => {
-                          alert("Report feature coming soon!");
-                          setShowDropdown(false);
-                        }}
-                      >
-                        <i className="bi bi-flag"></i>
-                        <span>Report User</span>
-                      </button>
+                    <button
+                      className="user-actions-dropdown-item"
+                      onClick={() => {
+                        alert("Report feature coming soon!");
+                        setShowDropdown(false);
+                      }}
+                    >
+                      <i className="bi bi-flag"></i>
+                      <span>Report User</span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -524,10 +533,6 @@ function UserPage({ currentUser }) {
           )}
           {activeTab === "about" && (
             <div className="about-content">
-              <div className="about-item">
-                <i className="bi bi-envelope"></i>
-                <span>{userData.email}</span>
-              </div>
               <div className="about-item">
                 <i className="bi bi-calendar"></i>
                 <span>Joined recently</span>

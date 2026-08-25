@@ -85,16 +85,16 @@ const getUserProfile = async (req, res) => {
     }
     const user = await userModel
       .findById(id)
-      .select(
-        "displayName email profileImage backgroundImage PostsCount friends Notifications friendRequestsReceived friendRequestsSent",
-      )
-      .populate("Notifications.sender", "displayName profileImage");
+      .select("displayName profileImage backgroundImage PostsCount");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
     // Fetch current user to check friend status
     const currentUser = await userModel.findById(req.user.id);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Current user not found" });
+    }
     const isFriend = currentUser.friends.some(
       (friendId) => friendId.toString() === id,
     );
@@ -109,17 +109,12 @@ const getUserProfile = async (req, res) => {
       user: {
         id: user._id,
         displayName: user.displayName,
-        email: user.email,
         profileImage: user.profileImage,
         backgroundImage: user.backgroundImage,
         PostsCount: user.PostsCount,
-        friends: user.friends,
         isFriend,
         hasSentRequest,
         hasReceivedRequest,
-        Notifications: user.Notifications,
-        friendRequestsReceived: user.friendRequestsReceived,
-        friendRequestsSent: user.friendRequestsSent,
       },
     });
   } catch (err) {
@@ -428,6 +423,7 @@ const getFriendRequestsReceived = async (req, res) => {
     const userId = req.user.id;
     const user = await userModel
       .findById(userId)
+
       .populate("friendRequestsReceived", "displayName email profileImage");
     res.json({ friendRequests: user.friendRequestsReceived });
   } catch (err) {
