@@ -40,9 +40,7 @@ function ChatsPage({ user, socket }) {
         `${API_URL}/users/${friendId}/remove-friend`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          credentials: "include",
         },
       );
 
@@ -184,9 +182,7 @@ function ChatsPage({ user, socket }) {
       if (!user) return;
       try {
         const res = await fetch(`${API_URL}/chats`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          credentials: "include",
         });
 
         if (!res.ok) {
@@ -268,8 +264,8 @@ function ChatsPage({ user, socket }) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
+          credentials: "include",
           body: JSON.stringify({ receiverId: selectedFriend._id }),
         });
 
@@ -296,9 +292,7 @@ function ChatsPage({ user, socket }) {
         const res = await fetch(
           `${API_URL}/messages/chats/${selectedChat._id}`,
           {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
+            credentials: "include",
           },
         );
         if (res.ok) {

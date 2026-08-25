@@ -20,17 +20,9 @@ function PostPage({ user, setAlertMessage }) {
     }
 
     const fetchPost = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-
       try {
         const response = await fetch(`${API_URL}/posts/${postId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: "include",
         });
 
         if (response.ok) {

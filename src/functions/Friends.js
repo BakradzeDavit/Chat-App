@@ -6,9 +6,7 @@ const handleFriendRequest = async (id, setFriendStatus) => {
       `${API_URL}/users/${id}/send-friend-request`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        credentials: "include",
       },
     );
 
@@ -47,9 +45,7 @@ const handleAcceptRequest = async (id, setFriendStatus) => {
       `${API_URL}/users/${id}/accept-friend-request`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        credentials: "include",
       },
     );
 
@@ -88,9 +84,7 @@ const handleDeclineRequest = async (id, setFriendStatus) => {
       `${API_URL}/users/${id}/cancel-friend-request`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        credentials: "include",
       },
     );
 
@@ -129,9 +123,7 @@ const handleRemoveFriend = async (id, setFriendStatus) => {
       `${API_URL}/users/${id}/remove-friend`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        credentials: "include",
       },
     );
 
@@ -170,9 +162,7 @@ const handleRejectRequest = async (id, setFriendStatus) => {
       `${API_URL}/users/${id}/decline-friend-request`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        credentials: "include",
       },
     );
 

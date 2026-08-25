@@ -25,9 +25,7 @@ import { Alert } from "bootstrap";
 
 function AppContent() {
   const [alertMessage, setAlertMessage] = useState("");
-  const [LoggedIn, setLoggedIn] = useState(() => {
-    return !!localStorage.getItem("token");
-  });
+  const [LoggedIn, setLoggedIn] = useState(false);
   const [user, setUser] = useState(() => {
     const storedUser = localStorage.getItem("user");
     return storedUser && storedUser !== "undefined"
@@ -45,9 +43,6 @@ function AppContent() {
     if (!LoggedIn || !user?.id) return;
 
     const socket = io(API_URL, {
-      auth: {
-        token: localStorage.getItem("token"),
-      },
       withCredentials: true,
       transports: ["websocket", "polling"],
     });
@@ -78,34 +73,27 @@ function AppContent() {
   // Check for existing login
   useEffect(() => {
     const restoreSession = async () => {
-      const token = localStorage.getItem("token");
+      try {
+        const response = await fetch(`${API_URL}/me`, {
+          credentials: "include",
+        });
 
-      if (token) {
-        try {
-          const response = await fetch(`${API_URL}/auth/me`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          if (!response.ok) {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            setLoggedIn(false);
-            setUser(null);
-            return;
-          }
-
-          const data = await response.json();
-
-          setLoggedIn(true);
-          setUser(data.user);
-          localStorage.setItem("user", JSON.stringify(data.user));
-        } catch (error) {
-          console.error("Failed to restore session:", error);
+        if (!response.ok) {
+          localStorage.removeItem("user");
           setLoggedIn(false);
           setUser(null);
+          return;
         }
+
+        const data = await response.json();
+
+        setLoggedIn(true);
+        setUser(data.user);
+        localStorage.setItem("user", JSON.stringify(data.user));
+      } catch (error) {
+        console.error("Failed to restore session:", error);
+        setLoggedIn(false);
+        setUser(null);
       }
     };
 
@@ -119,9 +107,7 @@ function AppContent() {
     const fetchCurrentUser = async () => {
       try {
         const response = await fetch(`${API_URL}/users/${user.id}/profile`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          credentials: "include",
         });
 
         if (response.ok) {
@@ -213,9 +199,7 @@ function AppContent() {
       if (notification.type === "friendRequest") {
         try {
           const response = await fetch(`${API_URL}/users/${user.id}/profile`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
+            credentials: "include",
           });
 
           if (response.ok) {
@@ -250,17 +234,25 @@ function AppContent() {
       console.log("App: Cleaned up global socket listeners");
     };
   }, [socketConnection, user?.id]);
-
-  const handleLogout = () => {
+  const handleLogout = async () => {
     // Explicitly tell server to mark as offline
     if (socketRef.current && user?.id) {
       socketRef.current.emit("userLogout", user.id);
       socketRef.current.disconnect();
       socketRef.current = null;
     }
+
     setSocketConnection(null);
 
-    localStorage.removeItem("token");
+    try {
+      await fetch(`${API_URL}/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+
     localStorage.removeItem("user");
     setLoggedIn(false);
     setUser(null);

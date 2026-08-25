@@ -34,9 +34,7 @@ const postsfunctions = {
     try {
       const response = await fetch(`${API_URL}/posts/${postId}/like`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -90,24 +88,13 @@ const postsfunctions = {
     // Don't set loading to true on every background refresh if we already have posts
     if (posts.length === 0) setIsLoading(true);
 
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      console.error("No token found");
-      navigate("/login");
-      return;
-    }
-
     try {
       const response = await fetch(`${API_URL}/posts`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
-      if (response.status === 403) {
-        console.error("Token invalid or expired");
-        localStorage.removeItem("token");
+      if (response.status === 401 || response.status === 403) {
+        console.error("Session invalid or expired");
         navigate("/login");
         return;
       }
@@ -180,10 +167,7 @@ const postsfunctions = {
 
         const response = await fetch(`${API_URL}/create-post`, {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-            // Content-Type is irrelevant when sending FormData, browser sets it automatically with boundary
-          },
+          credentials: "include",
           body: formData,
         });
 
@@ -225,9 +209,7 @@ const postsfunctions = {
     try {
       const response = await fetch(`${API_URL}/posts/${postId}/like`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -264,8 +246,8 @@ const postsfunctions = {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
+        credentials: "include",
         body: JSON.stringify({
           postId: postId,
           text,
@@ -290,8 +272,8 @@ const postsfunctions = {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
+        credentials: "include",
         body: JSON.stringify({
           postId: postId,
           text,

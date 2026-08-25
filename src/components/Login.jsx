@@ -17,39 +17,39 @@ function Login({ setLoggedIn, setUser }) {
   const navigate = useNavigate();
 
   const login = () => {
-    console.log("Logging in with:", { email, password });
     try {
       fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       })
-        .then((response) => response.json())
-        .then((data) => {
-          console.log("Login successful:", data);
+        .then(async (response) => {
+          const data = await response.json();
 
-          // ✅ Ensure user.id is stored as a string
+          if (!response.ok) {
+            throw new Error(data.message || "Login failed");
+          }
+
+          return data;
+        })
+        .then((data) => {
           const userData = {
             ...data.user,
-            id: String(data.user.id), // Convert to string
+            id: String(data.user.id),
           };
 
-          console.log("User data being stored:", userData); // Debug log
-
-          // ✅ Store token and user in localStorage
-          localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(userData));
-          setUser(userData);
 
-          // ✅ Set logged in state to true
+          setUser(userData);
           setLoggedIn(true);
+
           navigate("/home");
         })
         .catch((error) => {
           console.error("Login failed:", error);
-          // Handle login failure
         });
     } catch (error) {
       console.error("Error during login:", error);

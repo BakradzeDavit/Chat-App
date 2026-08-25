@@ -39,9 +39,7 @@ function UserPage({ currentUser }) {
     try {
       const response = await fetch(`${API_URL}/posts/${postId}/like`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -75,9 +73,8 @@ function UserPage({ currentUser }) {
         setLoading(true);
 
         const response = await fetch(`${API_URL}/users/${id}/profile`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          method: "GET",
+          credentials: "include",
         });
 
         if (!response.ok) {
@@ -115,9 +112,8 @@ function UserPage({ currentUser }) {
         setLoadingPosts(true);
         try {
           const response = await fetch(`${API_URL}/users/${id}/posts`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
+            method: "GET",
+            credentials: "include",
           });
 
           if (response.ok) {
@@ -422,8 +418,8 @@ function UserPage({ currentUser }) {
                                             headers: {
                                               "Content-Type":
                                                 "application/json",
-                                              Authorization: `Bearer ${localStorage.getItem("token")}`,
                                             },
+                                            credentials: "include",
                                             body: JSON.stringify({
                                               postId: post.id,
                                               text: post.newComment.trim(),

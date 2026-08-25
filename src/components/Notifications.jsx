@@ -27,9 +27,7 @@ function Notifications({ user }) {
       // Fetch updated user data to get populated notification
       try {
         const response = await fetch(`${API_URL}/users/${user.id}/profile`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          credentials: "include",
         });
 
         if (response.ok) {
@@ -47,9 +45,7 @@ function Notifications({ user }) {
             try {
               await fetch(`${API_URL}/notifications/${n._id}`, {
                 method: "DELETE",
-                headers: {
-                  Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
+                credentials: "include",
               });
             } catch (error) {
               console.error("Error deleting self-notification:", error);
@@ -88,8 +84,8 @@ function Notifications({ user }) {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
+          credentials: "include",
         },
       );
 

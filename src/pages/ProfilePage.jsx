@@ -14,9 +14,7 @@ function ProfilePage({ handleLogout, user, setUser, setAlertMessage }) {
     const fetchRequests = async () => {
       try {
         const sentRes = await fetch(`${API_URL}/users/friendRequestsSent`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          credentials: "include",
         });
         if (sentRes.ok) {
           const sentData = await sentRes.json();
@@ -26,9 +24,7 @@ function ProfilePage({ handleLogout, user, setUser, setAlertMessage }) {
         const receivedRes = await fetch(
           `${API_URL}/users/friendRequestsReceived`,
           {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
+            credentials: "include",
           },
         );
         if (receivedRes.ok) {
@@ -56,8 +52,8 @@ function ProfilePage({ handleLogout, user, setUser, setAlertMessage }) {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
+            credentials: "include",
             body: JSON.stringify({ username }),
           });
 
@@ -101,9 +97,7 @@ function ProfilePage({ handleLogout, user, setUser, setAlertMessage }) {
     try {
       const response = await fetch(`${API_URL}/upload-profile-pic`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        credentials: "include",
         body: formData,
       });
 

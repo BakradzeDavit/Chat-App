@@ -20,10 +20,14 @@ const login = async (req, res) => {
     const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
       expiresIn: TOKEN_EXPIRES_IN,
     });
-
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
     res.status(200).json({
       message: "Login successful",
-      token,
       user: {
         id: user._id,
         email: user.email,
@@ -53,10 +57,14 @@ const createUser = async (req, res) => {
     const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
       expiresIn: TOKEN_EXPIRES_IN,
     });
-
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
     res.status(201).json({
       message: "User created successfully",
-      token,
       user: {
         id: user._id,
         email: user.email,
@@ -93,5 +101,14 @@ const getMe = async (req, res) => {
     },
   });
 };
+const logout = (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
 
-module.exports = { login, createUser, getMe };
+  res.status(200).json({ message: "Logged out successfully" });
+};
+
+module.exports = { login, createUser, getMe, logout };

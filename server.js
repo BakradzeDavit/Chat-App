@@ -3,14 +3,22 @@ const cors = require("cors");
 const express = require("express");
 const http = require("http");
 const User = require("./models/user");
+const cookieParser = require("cookie-parser");
+
 require("dotenv").config();
 
 const app = express();
+app.use(cookieParser());
 
 const uri = process.env.MONGODB_URI;
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // Create HTTP server

@@ -33,6 +33,7 @@ function SignUp({ setLoggedIn, setUser }) {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           email,
           displayName,
@@ -41,17 +42,15 @@ function SignUp({ setLoggedIn, setUser }) {
       });
 
       const data = await response.json();
-      console.log("SignUp response:", data);
-
+      if (!response.ok) {
+        throw new Error(data.message || "Signup failed");
+      }
       // ✅ Ensure user.id is stored as a string
       const userData = {
         ...data.user,
         id: String(data.user.id), // Convert to string
       };
 
-      console.log("User data being stored:", userData); // Debug log
-
-      localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(userData));
 
       // ✅ Set logged in state to true
@@ -61,7 +60,7 @@ function SignUp({ setLoggedIn, setUser }) {
       // Navigate to home
       navigate("/home");
     } catch (err) {
-      setError("Something went wrong");
+      setError(err.message);
       console.error(err);
     }
   };

@@ -1,5 +1,10 @@
 const express = require("express");
-const { login, createUser, getMe } = require("../controllers/authController");
+const {
+  login,
+  createUser,
+  getMe,
+  logout,
+} = require("../controllers/authController");
 const { validate } = require("../middleware/validate");
 const { loginSchema, createUserSchema } = require("../schemas/authSchemas");
 const { authenticateToken } = require("../middleware/auth");
@@ -12,5 +17,5 @@ router.post("/login", validate(loginSchema), login);
 router.post("/create-user", validate(createUserSchema), createUser);
 
 router.get("/me", authenticateToken, getMe);
-
+router.post("/logout", logout);
 module.exports = router;

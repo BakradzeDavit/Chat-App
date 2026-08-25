@@ -2,10 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../config";
 import "./FriendsPage.css";
-import {
-  handleAcceptRequest,
-  handleRejectRequest,
-} from "../functions/Friends";
+import { handleAcceptRequest, handleRejectRequest } from "../functions/Friends";
 import { createOrGetChat } from "../functions/Chat";
 
 function FriendsPage({ user, socket }) {
@@ -16,7 +13,7 @@ function FriendsPage({ user, socket }) {
 
   const navigate = useNavigate();
   console.log(user);
-  
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -80,9 +77,8 @@ function FriendsPage({ user, socket }) {
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/users`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        method: "GET",
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -141,7 +137,9 @@ function FriendsPage({ user, socket }) {
     if (activeTab === "myfriends") {
       return users.filter((u) => user.friends.includes(u._id));
     } else if (activeTab === "online") {
-      return users.filter((u) => user.friends.includes(u._id) && u.Status === "online");
+      return users.filter(
+        (u) => user.friends.includes(u._id) && u.Status === "online",
+      );
     } else if (activeTab === "all") {
       // Return users who are NOT friends (to find new people)
       return users.filter((u) => !user.friends.includes(u._id));
@@ -152,8 +150,6 @@ function FriendsPage({ user, socket }) {
   };
 
   const filteredUsers = getFilteredUsers();
-
-  
 
   if (loading) {
     return (
@@ -168,7 +164,7 @@ function FriendsPage({ user, socket }) {
     );
   }
 
-  return (  
+  return (
     <div className="friends-page">
       <div className="friends-container">
         <div className="friends-header">
@@ -191,7 +187,7 @@ function FriendsPage({ user, socket }) {
             <i className="bi bi-person-check"></i>
             <span>Online</span>
           </button>
-           <button
+          <button
             className={`friends-tab-btn ${activeTab === "all" ? "active" : ""}`}
             onClick={() => setActiveTab("all")}
           >
@@ -210,67 +206,63 @@ function FriendsPage({ user, socket }) {
         {activeTab === "requests" ? (
           <div className="friend-requests-section">
             <div className="empty-state">
-            
-              {
-                FriendRequests?.length > 0 ? (
-                  FriendRequests.map((request) => (
-                   
-                    <div key={request} className="friend-request">
-                      {request.profileImage &&
-                      request.profileImage !== "letter" ? (
-                        <img
-                          className="friend-avatar"
-                          src={request.profileImage}
-                          alt={`${request.displayName || "User"} avatar`}
-                          onClick={() => handleViewProfile(request._id)}
-                        />
-                      ) : (
-                        <div
-                          className="friend-avatar friend-avatar-placeholder"
-                          onClick={() => handleViewProfile(request._id)}
-                        >
-                          <span>
-                            {request.displayName?.charAt(0).toUpperCase() || "U"}
-                          </span>
-                        </div>
-                      )}
-                      <div className="friend-request-info">
-                        <h3
-                          className="friend-name"
-                          onClick={() => handleViewProfile(request._id)}
-                        >
-                          {request.displayName || "Unknown User"}
-                        </h3>
-                        <p className="friend-status">
-                          <i
-                            className={`bi bi-circle-fill ${request.Status === "online" ? "status-online" : "status-offline"}`}
-                          ></i>
-                          {request.Status === "online" ? "Online" : "Offline"}
-                        </p>
+              {FriendRequests?.length > 0 ? (
+                FriendRequests.map((request) => (
+                  <div key={request} className="friend-request">
+                    {request.profileImage &&
+                    request.profileImage !== "letter" ? (
+                      <img
+                        className="friend-avatar"
+                        src={request.profileImage}
+                        alt={`${request.displayName || "User"} avatar`}
+                        onClick={() => handleViewProfile(request._id)}
+                      />
+                    ) : (
+                      <div
+                        className="friend-avatar friend-avatar-placeholder"
+                        onClick={() => handleViewProfile(request._id)}
+                      >
+                        <span>
+                          {request.displayName?.charAt(0).toUpperCase() || "U"}
+                        </span>
                       </div>
-                      <div className="friend-request-actions">
-                        <button
-                          className="accept-btn"
-                          onClick={() => handleAcceptFriendRequest(request._id)}
-                        >
-                          Accept
-                        </button>
-                        <button
-                          className="reject-btn"
-                          onClick={() => handleRejectFriendRequest(request._id)}
-                        >
-                          Reject
-                        </button>
-                      </div>
+                    )}
+                    <div className="friend-request-info">
+                      <h3
+                        className="friend-name"
+                        onClick={() => handleViewProfile(request._id)}
+                      >
+                        {request.displayName || "Unknown User"}
+                      </h3>
+                      <p className="friend-status">
+                        <i
+                          className={`bi bi-circle-fill ${request.Status === "online" ? "status-online" : "status-offline"}`}
+                        ></i>
+                        {request.Status === "online" ? "Online" : "Offline"}
+                      </p>
                     </div>
-                  ))
-                ) : (
-                    <div>
+                    <div className="friend-request-actions">
+                      <button
+                        className="accept-btn"
+                        onClick={() => handleAcceptFriendRequest(request._id)}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        className="reject-btn"
+                        onClick={() => handleRejectFriendRequest(request._id)}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div>
                   <div className="empty-icon">📭</div>
                   <p>No friend requests</p>
                 </div>
-                )
-              }
+              )}
             </div>
           </div>
         ) : (
