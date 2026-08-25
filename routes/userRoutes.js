@@ -22,7 +22,7 @@ const {
   deleteNotification,
   declineFriendRequest,
 } = require("../controllers/userController");
-
+const { uploadLimiter } = require("../middleware/rateLimiters");
 const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -42,6 +42,7 @@ router.put(
 router.post(
   "/upload-profile-pic",
   authenticateToken,
+  uploadLimiter,
   upload.single("profilePic"),
   uploadProfilePic,
 );

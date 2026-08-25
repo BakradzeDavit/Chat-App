@@ -4,7 +4,7 @@ const express = require("express");
 const http = require("http");
 const User = require("./models/user");
 const cookieParser = require("cookie-parser");
-
+const { mutationLimiter } = require("./middleware/rateLimiters");
 require("dotenv").config();
 
 const app = express();
@@ -13,6 +13,9 @@ app.use(cookieParser());
 const uri = process.env.MONGODB_URI;
 const PORT = process.env.PORT || 3000;
 
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -20,7 +23,19 @@ app.use(
   }),
 );
 app.use(express.json());
+app.use((req, res, next) => {
+  const mutationMethods = ["POST", "PUT", "PATCH", "DELETE"];
 
+  if (
+    mutationMethods.includes(req.method) &&
+    req.path !== "/login" &&
+    req.path !== "/create-user"
+  ) {
+    return mutationLimiter(req, res, next);
+  }
+
+  next();
+});
 // Create HTTP server
 const server = http.createServer(app);
 

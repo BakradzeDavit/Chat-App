@@ -1,4 +1,5 @@
 const express = require("express");
+const { loginLimiter, signupLimiter } = require("../middleware/rateLimiters");
 const {
   login,
   createUser,
@@ -11,11 +12,14 @@ const { authenticateToken } = require("../middleware/auth");
 const router = express.Router();
 
 // ✅ Login endpoint with validation
-router.post("/login", validate(loginSchema), login);
+router.post("/login", loginLimiter, validate(loginSchema), login);
 
-// ✅ Create user endpoint with validation
-router.post("/create-user", validate(createUserSchema), createUser);
-
+router.post(
+  "/create-user",
+  signupLimiter,
+  validate(createUserSchema),
+  createUser,
+);
 router.get("/me", authenticateToken, getMe);
 router.post("/logout", logout);
 module.exports = router;

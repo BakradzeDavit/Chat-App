@@ -6,6 +6,7 @@ const userSocket = require("./user.socket");
 const messageSocket = require("./message.socket");
 const reactionSocket = require("./reaction.socket");
 const User = require("../models/user");
+const { clearSocketLimits } = require("./socketratelimit");
 module.exports = (io) => {
   io.userConnections = io.userConnections || new Map();
 
@@ -50,6 +51,7 @@ module.exports = (io) => {
     reactionSocket(socket, io);
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
+      clearSocketLimits(socket.id);
     });
   });
 };

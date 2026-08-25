@@ -1,8 +1,11 @@
 const Message = require("../models/Message");
 const Chat = require("../models/Chat");
-
+const { isRateLimited } = require("./socketratelimit");
 module.exports = (socket, io) => {
   socket.on("send_message", async (data) => {
+    if (isRateLimited(socket.id, "sendMessage", 20, 10_000)) {
+      return socket.emit("error", "You're sending messages too quickly.");
+    }
     try {
       const {
         chatId,
@@ -19,7 +22,13 @@ module.exports = (socket, io) => {
         });
         return;
       }
+      if (typeof content === "string" && content.length > 5000) {
+        return socket.emit("error", "Message is too long.");
+      }
 
+      if (Array.isArray(attachments) && attachments.length > 10) {
+        return socket.emit("error", "Too many attachments.");
+      }
       const chat = await Chat.findById(chatId);
       if (!chat) {
         socket.emit("message_error", { message: "Chat not found" });

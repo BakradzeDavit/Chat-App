@@ -1,11 +1,21 @@
 const Message = require("../models/Message");
 const Chat = require("../models/Chat");
 const { reactMessageSchema } = require("../schemas/messageSchemas");
-  
+const { isRateLimited } = require("./socketratelimit");
 
 // Runs whenever this connected user clicks an emoji reaction.
 module.exports = (socket, io) => {
   socket.on("react_message", async ({ chatId, messageId, emoji }) => {
+    if (isRateLimited(socket.id, "reaction", 30, 10_000)) {
+      return socket.emit("error", "You're reacting too quickly.");
+    }
+
+    if (typeof emoji !== "string" || emoji.length > 10) {
+      return socket.emit("reaction_error", {
+        message: "Invalid reaction.",
+      });
+    }
+
     try {
       const validation = reactMessageSchema.safeParse({
         chatId,
