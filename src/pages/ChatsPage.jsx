@@ -209,7 +209,9 @@ function ChatsPage({ user, socket }) {
     const handleIncoming = (msg) => {
       setMessages((prev) => [...prev, msg]);
     };
-
+    window.testJoinChat = (chatId) => {
+      socket.emit("joinChat", chatId);
+    };
     socket.on("receive_message", handleIncoming);
     return () => socket.off("receive_message", handleIncoming);
   }, [socket]);

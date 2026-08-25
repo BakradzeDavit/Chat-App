@@ -77,21 +77,39 @@ function AppContent() {
 
   // Check for existing login
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
+    const restoreSession = async () => {
+      const token = localStorage.getItem("token");
 
-    if (token && storedUser && storedUser !== "undefined") {
-      try {
-        setLoggedIn(true);
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error("Failed to parse user data:", error);
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        setLoggedIn(false);
-        setUser(null);
+      if (token) {
+        try {
+          const response = await fetch(`${API_URL}/auth/me`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!response.ok) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setLoggedIn(false);
+            setUser(null);
+            return;
+          }
+
+          const data = await response.json();
+
+          setLoggedIn(true);
+          setUser(data.user);
+          localStorage.setItem("user", JSON.stringify(data.user));
+        } catch (error) {
+          console.error("Failed to restore session:", error);
+          setLoggedIn(false);
+          setUser(null);
+        }
       }
-    }
+    };
+
+    restoreSession();
   }, []);
 
   // ✅ FIX 2: Fetch user profile only once after initial login

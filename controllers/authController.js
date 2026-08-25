@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const userModel = require("../models/user");
-
+const TOKEN_EXPIRES_IN = "24h";
 const SECRET_KEY = process.env.SECRET_KEY;
 
 // ✅ Login endpoint
@@ -18,7 +18,7 @@ const login = async (req, res) => {
     await user.populate("Notifications.sender", "displayName profileImage");
 
     const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
-      expiresIn: "24h",
+      expiresIn: TOKEN_EXPIRES_IN,
     });
 
     res.status(200).json({
@@ -51,7 +51,7 @@ const createUser = async (req, res) => {
     const user = await userModel.create({ email, displayName, password });
 
     const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
-      expiresIn: "48h",
+      expiresIn: TOKEN_EXPIRES_IN,
     });
 
     res.status(201).json({
@@ -75,4 +75,23 @@ const createUser = async (req, res) => {
   }
 };
 
-module.exports = { login, createUser };
+const getMe = async (req, res) => {
+  const user = await userModel
+    .findById(req.user.id)
+    .select("displayName email profileImage");
+
+  if (!user) {
+    return res.status(401).json({ message: "User no longer exists" });
+  }
+
+  res.json({
+    user: {
+      id: user._id,
+      displayName: user.displayName,
+      email: user.email,
+      profileImage: user.profileImage,
+    },
+  });
+};
+
+module.exports = { login, createUser, getMe };

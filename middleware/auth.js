@@ -1,17 +1,30 @@
 const jwt = require("jsonwebtoken");
+const userModel = require("../models/user");
+
 const SECRET_KEY = process.env.SECRET_KEY;
 
-// ✅ Authentication middleware
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const token = req.headers["authorization"]?.split(" ")[1];
 
-  if (!token) return res.status(401).json({ message: "No token provided" });
+  if (!token) {
+    return res.status(401).json({ message: "No token provided" });
+  }
 
-  jwt.verify(token, SECRET_KEY, (err, user) => {
-    if (err) return res.status(403).json({ message: "Invalid token" });
-    req.user = user;
+  try {
+    const decoded = jwt.verify(token, SECRET_KEY);
+
+    const dbUser = await userModel.findById(decoded.id);
+
+    if (!dbUser) {
+      return res.status(401).json({ message: "User no longer exists" });
+    }
+
+    req.user = decoded;
     next();
-  });
+  } catch (err) {
+    console.error("Error during token verification:", err);
+    return res.status(403).json({ message: "Invalid token" });
+  }
 };
 
 module.exports = { authenticateToken };
