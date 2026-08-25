@@ -1,5 +1,5 @@
 const { app, BrowserWindow } = require("electron");
-
+const path = require("path");
 let mainWindow;
 
 async function createWindow() {
@@ -7,14 +7,12 @@ async function createWindow() {
     width: 1200,
     height: 800,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
       webSecurity: true,
     },
   });
-
-  await mainWindow.loadURL("http://localhost:5173");
-  mainWindow.webContents.openDevTools();
 
   mainWindow.webContents.on(
     "did-fail-load",
@@ -22,11 +20,12 @@ async function createWindow() {
       console.log("Failed to load:", errorCode, errorDescription);
     },
   );
-
-  mainWindow.on("close", () => {
-    // Notify renderer to go offline before closing
-    mainWindow.webContents.send("app-closing");
-  });
+  if (app.isPackaged) {
+    await mainWindow.loadFile(path.join(__dirname, "dist", "index.html"));
+  } else {
+    await mainWindow.loadURL("http://localhost:5173");
+    mainWindow.webContents.openDevTools();
+  }
 
   mainWindow.on("closed", () => {
     mainWindow = null;
