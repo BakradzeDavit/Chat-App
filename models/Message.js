@@ -14,7 +14,10 @@ const messageSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-
+    clientMessageId: {
+      type: String,
+      trim: true,
+    },
     content: {
       type: String,
       // Not required for media messages
@@ -73,6 +76,14 @@ const messageSchema = new mongoose.Schema(
 
 // Index for faster queries
 messageSchema.index({ chatId: 1, createdAt: -1 });
-
+messageSchema.index(
+  { sender: 1, clientMessageId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      clientMessageId: { $type: "string" },
+    },
+  },
+);
 module.exports =
   mongoose.models.Message || mongoose.model("Message", messageSchema);

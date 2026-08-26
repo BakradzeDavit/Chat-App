@@ -19,7 +19,7 @@ const messagePayloadSchema = z.object({
     .min(1, "Message content cannot be empty")
     .max(5000, "Message content must be less than 5000 characters")
     .trim(),
-
+  clientMessageId: z.string().min(1).max(100).optional(),
   messageType: z
     .enum(["text", "image", "file", "voice"])
     .optional()

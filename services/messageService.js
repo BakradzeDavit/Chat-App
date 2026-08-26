@@ -7,6 +7,7 @@ const createMessage = async ({
   senderId,
   chatId,
   content,
+  clientMessageId,
   messageType = "text",
   attachments = [],
   replyTo,
@@ -14,6 +15,7 @@ const createMessage = async ({
   const result = messagePayloadSchema.safeParse({
     chatId,
     content,
+    clientMessageId,
     messageType,
     attachments,
     replyTo,
@@ -43,15 +45,38 @@ const createMessage = async ({
     throw error;
   }
 
-  const message = await Message.create({
-    chatId: validated.chatId,
-    sender: senderId,
-    content: validated.content,
-    messageType: validated.messageType,
-    attachments: validated.attachments || [],
-    replyTo: validated.replyTo || null,
-    readBy: [senderId],
-  });
+  let message;
+
+  try {
+    message = await Message.create({
+      chatId: validated.chatId,
+      sender: senderId,
+      clientMessageId: validated.clientMessageId,
+      content: validated.content,
+      messageType: validated.messageType,
+      attachments: validated.attachments || [],
+      replyTo: validated.replyTo || null,
+      readBy: [senderId],
+    });
+  } catch (error) {
+    // Two identical retries may reach MongoDB at almost the same time.
+    // The unique index lets only one win.
+    if (error?.code === 11000 && validated.clientMessageId) {
+      const existingMessage = await Message.findOne({
+        sender: senderId,
+        clientMessageId: validated.clientMessageId,
+      }).populate("sender", PUBLIC_SENDER_FIELDS);
+
+      if (existingMessage) {
+        return {
+          message: existingMessage,
+          created: false,
+        };
+      }
+    }
+
+    throw error;
+  }
 
   chat.lastMessage = {
     sender: senderId,
@@ -63,7 +88,10 @@ const createMessage = async ({
 
   await message.populate("sender", PUBLIC_SENDER_FIELDS);
 
-  return message;
+  return {
+    message,
+    created: true,
+  };
 };
 
 module.exports = {

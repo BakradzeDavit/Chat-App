@@ -6,20 +6,29 @@ const {
 } = require("../services/messageService");
 exports.createMessage = async (req, res, next) => {
   try {
-    const { chatId, content, messageType, attachments, replyTo } = req.body;
+    const {
+      chatId,
+      clientMessageId,
+      content,
+      messageType,
+      attachments,
+      replyTo,
+    } = req.body;
     const senderId = req.user.id;
 
-    const message = await createMessageService({
+    const { message, created } = await createMessageService({
       chatId,
       senderId,
       content,
+      clientMessageId,
       messageType,
       attachments,
       replyTo,
     });
 
-    req.io.to(String(chatId)).emit("receive_message", message);
-
+    if (created) {
+      req.io.to(String(chatId)).emit("receive_message", message);
+    }
     res.status(201).json(message);
   } catch (error) {
     next(error);

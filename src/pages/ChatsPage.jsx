@@ -19,11 +19,31 @@ function ChatsPage({ user, socket }) {
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [selectedChat, setSelectedChat] = useState(null);
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [messagesByChat, setMessagesByChat] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
+  const pendingSendRef = useRef(null);
   const location = useLocation();
+  const currentChatId = selectedChat?._id ? String(selectedChat._id) : null;
 
+  const messages = currentChatId ? messagesByChat[currentChatId] || [] : [];
+
+  const setMessages = (updater) => {
+    if (!currentChatId) return;
+
+    setMessagesByChat((current) => {
+      const currentMessages = current[currentChatId] || [];
+
+      const nextMessages =
+        typeof updater === "function" ? updater(currentMessages) : updater;
+
+      return {
+        ...current,
+        [currentChatId]: nextMessages,
+      };
+    });
+  };
   // Handle navigation from FriendsPage
   useEffect(() => {
     if (location.state?.selectedFriend) {
@@ -164,16 +184,98 @@ function ChatsPage({ user, socket }) {
   }, [socket, selectedChat?._id]);
 
   const handleSendMessage = () => {
-    if (!message.trim() || !selectedChat || !socket) return;
+    if (!message.trim() || !selectedChat || !socket || isSending) return;
 
     const content = message.trim();
-    setMessage("");
+    const chatId = String(selectedChat._id);
 
-    socket.emit("send_message", {
-      chatId: selectedChat._id,
+    let clientMessageId;
+
+    if (
+      pendingSendRef.current?.content === content &&
+      pendingSendRef.current?.chatId === chatId
+    ) {
+      clientMessageId = pendingSendRef.current.clientMessageId;
+    } else {
+      clientMessageId = crypto.randomUUID();
+
+      pendingSendRef.current = {
+        clientMessageId,
+        content,
+        chatId,
+      };
+    }
+
+    const optimisticMessage = {
+      clientMessageId,
+      chatId,
+      sender: user._id || user.id,
       content,
       messageType: "text",
+      createdAt: new Date().toISOString(),
+      reactions: [],
+      status: "pending",
+    };
+
+    setMessages((currentMessages) => {
+      const alreadyExists = currentMessages.some(
+        (msg) => msg.clientMessageId === clientMessageId,
+      );
+
+      if (alreadyExists) {
+        return currentMessages.map((msg) =>
+          msg.clientMessageId === clientMessageId
+            ? { ...msg, status: "pending" }
+            : msg,
+        );
+      }
+
+      return [...currentMessages, optimisticMessage];
     });
+
+    setIsSending(true);
+
+    socket.timeout(5000).emit(
+      "send_message",
+      {
+        chatId,
+        clientMessageId,
+        content,
+        messageType: "text",
+      },
+      (timeoutError, response) => {
+        setIsSending(false);
+
+        if (timeoutError || !response?.ok) {
+          setMessages((currentMessages) =>
+            currentMessages.map((msg) =>
+              msg.clientMessageId === clientMessageId
+                ? { ...msg, status: "failed" }
+                : msg,
+            ),
+          );
+
+          return;
+        }
+
+        setMessages((currentMessages) =>
+          currentMessages.map((msg) =>
+            msg.clientMessageId === clientMessageId
+              ? {
+                  ...response.message,
+                  status: "sent",
+                }
+              : msg,
+          ),
+        );
+
+        if (pendingSendRef.current?.clientMessageId === clientMessageId) {
+          pendingSendRef.current = null;
+        }
+
+        setMessage((current) => (current.trim() === content ? "" : current));
+      },
+    );
   };
 
   // Fetch friends list when user.friends changes
@@ -200,17 +302,59 @@ function ChatsPage({ user, socket }) {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !selectedChat?._id) return;
+
+    const currentChatId = String(selectedChat._id);
 
     const handleIncoming = (msg) => {
-      setMessages((prev) => [...prev, msg]);
+      if (!msg) return;
+
+      // Ignore messages belonging to a chat we're no longer viewing.
+      if (String(msg.chatId) !== currentChatId) {
+        return;
+      }
+
+      setMessages((currentMessages) => {
+        const existingIndex = currentMessages.findIndex((currentMessage) => {
+          const sameClientId =
+            msg.clientMessageId &&
+            currentMessage.clientMessageId === msg.clientMessageId;
+
+          const sameDatabaseId =
+            msg._id &&
+            currentMessage._id &&
+            String(currentMessage._id) === String(msg._id);
+
+          return sameClientId || sameDatabaseId;
+        });
+
+        if (existingIndex === -1) {
+          return [
+            ...currentMessages,
+            {
+              ...msg,
+              status: "sent",
+            },
+          ];
+        }
+
+        return currentMessages.map((currentMessage, index) =>
+          index === existingIndex
+            ? {
+                ...msg,
+                status: "sent",
+              }
+            : currentMessage,
+        );
+      });
     };
-    window.testJoinChat = (chatId) => {
-      socket.emit("joinChat", chatId);
-    };
+
     socket.on("receive_message", handleIncoming);
-    return () => socket.off("receive_message", handleIncoming);
-  }, [socket]);
+
+    return () => {
+      socket.off("receive_message", handleIncoming);
+    };
+  }, [socket, selectedChat?._id]);
 
   // Keep both the conversation list and open chat in sync with presence events.
   useEffect(() => {
@@ -285,27 +429,60 @@ function ChatsPage({ user, socket }) {
 
   // Fetch messages when selectedChat changes
   useEffect(() => {
-    if (!selectedChat) return;
+    if (!selectedChat?._id) return;
+
+    const controller = new AbortController();
+    const chatId = String(selectedChat._id);
 
     const fetchMessages = async () => {
       try {
-        const res = await fetch(
-          `${API_URL}/messages/chats/${selectedChat._id}`,
-          {
-            credentials: "include",
-          },
-        );
+        const res = await fetch(`${API_URL}/messages/chats/${chatId}`, {
+          credentials: "include",
+          signal: controller.signal,
+        });
+
         if (res.ok) {
           const data = await res.json();
-          setMessages(data);
+
+          setMessages((currentMessages) => {
+            const merged = [...data];
+
+            for (const currentMessage of currentMessages) {
+              const alreadyExists = merged.some((historyMessage) => {
+                const sameClientId =
+                  currentMessage.clientMessageId &&
+                  historyMessage.clientMessageId ===
+                    currentMessage.clientMessageId;
+
+                const sameDatabaseId =
+                  currentMessage._id &&
+                  historyMessage._id &&
+                  String(currentMessage._id) === String(historyMessage._id);
+
+                return sameClientId || sameDatabaseId;
+              });
+
+              if (!alreadyExists) {
+                merged.push(currentMessage);
+              }
+            }
+
+            return merged;
+          });
         }
       } catch (error) {
-        console.error("Error fetching messages:", error);
+        if (error.name !== "AbortError") {
+          console.error("Error fetching messages:", error);
+        }
       }
     };
 
     fetchMessages();
-  }, [selectedChat]);
+
+    return () => {
+      controller.abort();
+    };
+  }, [selectedChat?._id]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -482,7 +659,7 @@ function ChatsPage({ user, socket }) {
                 <button
                   className="send-btn"
                   onClick={handleSendMessage}
-                  disabled={!message.trim()}
+                  disabled={!message.trim() || isSending}
                 >
                   <i className="bi bi-send-fill"></i>
                 </button>
