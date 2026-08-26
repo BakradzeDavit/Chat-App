@@ -1,6 +1,5 @@
-const Message = require("../models/Message");
-const Chat = require("../models/Chat");
 const { isRateLimited } = require("./socketratelimit");
+const { createMessage } = require("../services/messageService");
 module.exports = (socket, io) => {
   socket.on("send_message", async (data) => {
     if (isRateLimited(socket.id, "sendMessage", 20, 10_000)) {
@@ -16,51 +15,15 @@ module.exports = (socket, io) => {
       } = data || {};
 
       const senderId = socket.userId;
-      if (!chatId || !senderId) {
-        socket.emit("message_error", {
-          message: "Missing chatId or sender",
-        });
-        return;
-      }
-      if (typeof content === "string" && content.length > 5000) {
-        return socket.emit("error", "Message is too long.");
-      }
 
-      if (Array.isArray(attachments) && attachments.length > 10) {
-        return socket.emit("error", "Too many attachments.");
-      }
-      const chat = await Chat.findById(chatId);
-      if (!chat) {
-        socket.emit("message_error", { message: "Chat not found" });
-        return;
-      }
-
-      const isParticipant = chat.participants.some(
-        (id) => id.toString() === senderId.toString(),
-      );
-      if (!isParticipant) {
-        socket.emit("message_error", { message: "Access denied" });
-        return;
-      }
-
-      const message = await Message.create({
+      const message = await createMessage({
         chatId,
-        sender: senderId,
+        senderId,
         content,
         messageType,
         attachments,
         replyTo,
-        readBy: [senderId],
       });
-
-      chat.lastMessage = {
-        sender: senderId,
-        content,
-        timestamp: message.createdAt,
-      };
-      await chat.save();
-
-      await message.populate("sender", "username profilePicture");
 
       io.to(String(chatId)).emit("receive_message", message);
     } catch (error) {

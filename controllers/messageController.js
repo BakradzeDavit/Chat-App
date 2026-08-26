@@ -1,42 +1,24 @@
 const Message = require("../models/Message");
 const Chat = require("../models/Chat");
-
-// ✅ Create a new message
+const {
+  createMessage: createMessageService,
+  PUBLIC_SENDER_FIELDS,
+} = require("../services/messageService");
 exports.createMessage = async (req, res, next) => {
   try {
     const { chatId, content, messageType, attachments, replyTo } = req.body;
-    const sender = req.user.id;
+    const senderId = req.user.id;
 
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      return res.status(404).json({ message: "Chat not found" });
-    }
-
-    const isParticipant = chat.participants.some(
-      (id) => id.toString() === sender,
-    );
-    if (!isParticipant) {
-      return res.status(403).json({ message: "Access denied" });
-    }
-
-    const message = await Message.create({
+    const message = await createMessageService({
       chatId,
-      sender,
+      senderId,
       content,
       messageType,
-      attachments: attachments || [],
-      replyTo: replyTo || null,
-      readBy: [sender],
+      attachments,
+      replyTo,
     });
 
-    chat.lastMessage = {
-      sender,
-      content,
-      timestamp: message.createdAt,
-    };
-    await chat.save();
-
-    await message.populate("sender", "username profilePicture");
+    req.io.to(String(chatId)).emit("receive_message", message);
 
     res.status(201).json(message);
   } catch (error) {
@@ -60,7 +42,7 @@ exports.getMessagesByChat = async (req, res, next) => {
     }
 
     const messages = await Message.find({ chatId })
-      .populate("sender", "username profilePicture")
+      .populate("sender", PUBLIC_SENDER_FIELDS)
       .sort({ createdAt: 1 }); // Oldest first
 
     res.json(messages);
@@ -76,6 +58,7 @@ exports.markMessageAsRead = async (req, res, next) => {
     const userId = req.user.id;
 
     const message = await Message.findById(id);
+
     if (!message) {
       return res.status(404).json({ message: "Message not found" });
     }

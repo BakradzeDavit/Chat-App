@@ -11,21 +11,27 @@ const attachmentSchema = z.object({
   mimeType: z.string().optional(),
 });
 
+const messagePayloadSchema = z.object({
+  chatId: objectIdSchema,
+
+  content: z
+    .string()
+    .min(1, "Message content cannot be empty")
+    .max(5000, "Message content must be less than 5000 characters")
+    .trim(),
+
+  messageType: z
+    .enum(["text", "image", "file", "voice"])
+    .optional()
+    .default("text"),
+
+  attachments: z.array(attachmentSchema).max(10).optional(),
+
+  replyTo: objectIdSchema.optional(),
+});
+
 const createMessageSchema = z.object({
-  body: z.object({
-    chatId: objectIdSchema,
-    content: z
-      .string()
-      .min(1, "Message content cannot be empty")
-      .max(5000, "Message content must be less than 5000 characters")
-      .trim(),
-    messageType: z
-      .enum(["text", "image", "file", "voice"])
-      .optional()
-      .default("text"),
-    attachments: z.array(attachmentSchema).optional(),
-    replyTo: objectIdSchema.optional(),
-  }),
+  body: messagePayloadSchema,
 });
 
 const messageIdParamSchema = z.object({
@@ -50,4 +56,5 @@ module.exports = {
   messageIdParamSchema,
   chatIdParamSchema,
   reactMessageSchema,
+  messagePayloadSchema,
 };
