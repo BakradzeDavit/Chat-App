@@ -2,7 +2,7 @@ const Message = require("../models/Message");
 const Chat = require("../models/Chat");
 
 // ✅ Create a new message
-exports.createMessage = async (req, res) => {
+exports.createMessage = async (req, res, next) => {
   try {
     const { chatId, content, messageType, attachments, replyTo } = req.body;
     const sender = req.user.id;
@@ -40,15 +40,12 @@ exports.createMessage = async (req, res) => {
 
     res.status(201).json(message);
   } catch (error) {
-    res.status(500).json({
-      message: "Error creating message",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // ✅ Get messages for a specific chat
-exports.getMessagesByChat = async (req, res) => {
+exports.getMessagesByChat = async (req, res, next) => {
   try {
     const { chatId } = req.params;
     const userId = req.user.id;
@@ -68,14 +65,12 @@ exports.getMessagesByChat = async (req, res) => {
 
     res.json(messages);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching messages", error: error.message });
+    next(error);
   }
 };
 
 // ✅ Mark a message as read by the current user
-exports.markMessageAsRead = async (req, res) => {
+exports.markMessageAsRead = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
@@ -98,8 +93,6 @@ exports.markMessageAsRead = async (req, res) => {
 
     res.json({ message: "Message marked as read" });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error marking message as read", error: error.message });
+    next(error);
   }
 };

@@ -3,22 +3,32 @@ const cors = require("cors");
 const express = require("express");
 const http = require("http");
 const User = require("./models/user");
+const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 const { mutationLimiter } = require("./middleware/rateLimiters");
-require("dotenv").config();
+const env = require("./config/env");
 
+const allowedOrigins =
+  env.NODE_ENV === "production"
+    ? [env.FRONTEND_URL]
+    : ["http://localhost:5173"];
 const app = express();
-app.use(cookieParser());
+app.use(
+  cookieParser(),
+  helmet({
+    contentSecurityPolicy: env.NODE_ENV === "production",
+  }),
+);
 
-const uri = process.env.MONGODB_URI;
-const PORT = process.env.PORT || 3000;
+const uri = env.MONGODB_URI;
+const PORT = env.PORT;
 
-if (process.env.NODE_ENV === "production") {
+if (env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: allowedOrigins,
     credentials: true,
   }),
 );
@@ -42,8 +52,9 @@ const server = http.createServer(app);
 // Socket.io setup FIRST
 const io = require("socket.io")(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
@@ -103,5 +114,16 @@ const startServer = async () => {
     process.exitCode = 1;
   }
 };
+
+app.use((err, req, res, next) => {
+  console.error(err);
+
+  const status = err.status || 500;
+
+  res.status(status).json({
+    message:
+      status >= 500 ? "Internal server error" : err.message || "Request failed",
+  });
+});
 
 startServer();

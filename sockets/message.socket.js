@@ -67,7 +67,6 @@ module.exports = (socket, io) => {
       console.error("Socket message error:", error);
       socket.emit("message_error", {
         message: "Error sending message",
-        error: error.message,
       });
     }
   });
