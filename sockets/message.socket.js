@@ -1,4 +1,4 @@
-const { isRateLimited } = require("./socketratelimit");
+const { isRateLimited } = require("./socketRateLimit.js");
 const { createMessage } = require("../services/messageService");
 
 module.exports = (socket, io) => {

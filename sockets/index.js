@@ -6,7 +6,7 @@ const userSocket = require("./user.socket");
 const messageSocket = require("./message.socket");
 const reactionSocket = require("./reaction.socket");
 const User = require("../models/user");
-const { clearSocketLimits } = require("./socketratelimit");
+const { clearSocketLimits } = require("./socketRateLimit");
 module.exports = (io) => {
   io.userConnections = io.userConnections || new Map();
 

@@ -1,8 +1,8 @@
 const Message = require("../models/Message");
 const Chat = require("../models/Chat");
 const { reactMessageSchema } = require("../schemas/messageSchemas");
-const { isRateLimited } = require("./socketratelimit");
 
+const { isRateLimited } = require("./socketRateLimit");
 // Runs whenever this connected user clicks an emoji reaction.
 module.exports = (socket, io) => {
   socket.on("react_message", async ({ chatId, messageId, emoji }) => {
